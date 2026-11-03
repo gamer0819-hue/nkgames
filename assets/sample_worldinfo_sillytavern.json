@@ -1,0 +1,18 @@
+{
+  "entries": {
+    "0": {
+      "uid": 0,
+      "key": [
+        "醉月"
+      ],
+      "keysecondary": [],
+      "comment": "ST 格式測試",
+      "content": "「醉月」是灰石酒館裡最受歡迎的蜂蜜酒，喝了會想唱歌。",
+      "constant": false,
+      "selective": false,
+      "order": 100,
+      "disable": false,
+      "depth": 4
+    }
+  }
+}
