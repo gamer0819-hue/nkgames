@@ -473,6 +473,9 @@ body.inbattle #chatview,body.inbattle #mapview{visibility:hidden}
 }
 
 #btParty select{font-size:11px;padding:1px 4px;margin-top:2px;max-width:92px;background:#1b1724;color:var(--txt);border:1px solid var(--line);border-radius:6px}
+
+/* v3.4.1 per-save context controls */
+.ctxgrid341{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:14px 0}.ctxgrid341 label{display:flex;flex-direction:column;gap:6px;color:var(--txt);font-size:13px}.ctxgrid341 input[type=number]{width:100%;box-sizing:border-box;background:#211b2b;color:#efe6f7;border:1px solid #554765;border-radius:6px;padding:8px;font:inherit} @media(max-width:520px){.ctxgrid341{grid-template-columns:1fr}}
 </style></head><body>
 <div id="app">
  <aside id="nav">
@@ -1358,7 +1361,7 @@ const FORMATS={
  openai:{
   req(p,msgs,o){const h={'Content-Type':'application/json'};if(p.key)h.Authorization='Bearer '+p.key;
    if(p.provider==='openrouter'){h['X-Title']='Lunaria RPG'}
-   const body={model:p.model,messages:msgs};if(o.temperature!=null)body.temperature=o.temperature;body[p.provider==='openai'?'max_completion_tokens':'max_tokens']=o.maxTokens;Object.assign(body,p.extra||{});if(o.stream)body.stream=true;
+   const body={model:p.model,messages:msgs};if(o.temperature!=null)body.temperature=o.temperature;body[p.provider==='openai'?'max_completion_tokens':'max_tokens']=o.maxTokens;Object.assign(body,p.extra||{},o.penalties||{});if(o.stream)body.stream=true;
    return{url:trimBase(p.base)+'/chat/completions',init:{method:'POST',headers:h,body:JSON.stringify(body)}}},
   parse:j=>j.choices?.[0]?.message?.content??'',
   chunk:j=>j.choices?.[0]?.delta?.content||'',
@@ -1395,7 +1398,7 @@ function canLive(p=activeProfile()){return !!(p&&trimBase(p.base)&&p.model&&(p.k
 async function callModel(messages,o={}){
  const p=o.profile||activeProfile();if(!canLive(p))throw new AIError('尚未完成 AI 連線設定（需要 API 位址、模型名稱，雲端服務還需要金鑰）。');
  const F=FORMATS[PROVIDERS[p.provider]?.format||'openai'];
- const opts={temperature:(p.temp===null||p.temp===''||p.temp===undefined)?null:(isNaN(+p.temp)?0.9:+p.temp),maxTokens:o.maxTokens||+p.maxTokens||700,stream:!!(p.stream&&o.onDelta)};
+ const opts={temperature:(p.temp===null||p.temp===''||p.temp===undefined)?null:(isNaN(+p.temp)?0.9:+p.temp),maxTokens:o.maxTokens||+p.maxTokens||700,stream:!!(p.stream&&o.onDelta)};if(o.temperature!==undefined)opts.temperature=o.temperature;opts.penalties=o.penalties;
  const{url,init}=F.req(p,messages,opts);const ctl=new AbortController();const tm=setTimeout(()=>ctl.abort(),o.timeout||90000);init.signal=ctl.signal;
  let r;try{r=await fetch(url,init)}catch(e){clearTimeout(tm);throw friendlyNet(e,p)}
  try{
@@ -2607,11 +2610,11 @@ function openMem(view='facts'){if(view==='main')view='facts';const bk=JSON.parse
   <div class="ml">${c.mem.map((m,i)=>`<div class="mrow">${impSel(m.imp,'nImp',i)}<input type="text" class="nTxt" data-i="${i}" value="${esc(m.text)}"><small>${slotStr(m.day,m.slot)}・${SRC_LABEL[m.src]||'親身'}</small><a href="#" data-mem="npin:${i}">釘選</a><a href="#" data-mem="ndel:${i}">刪除</a></div>`).join('')||'<div class="empty">還沒有記憶。</div>'}</div>
   <div class="row"><button class="btn" data-mem="savenotes">儲存修改</button></div>
   <div class="row"><input type="text" id="nNew" placeholder="替${nm(cid)}新增一則記憶" style="flex:1"><select id="nNewImp">${[5,4,3,2,1].map(n=>`<option value="${n}" ${n===3?'selected':''}>${stars(n)}</option>`).join('')}</select><button class="btn g" data-mem="nadd">新增</button></div>`}
- if(view==='sum')body=`<div class="note" style="margin-top:0">最近 ${CFG.window||20} 則對話以原文保留；更早的對話會整理成「每日摘要」，每兩天再整理成「章節摘要」。${CFG.mode==='live'?'AI 模式由模型撰寫摘要。':'示範模式用範本擷取。'}目前已整理到第 ${S.sumIdx} 則（共 ${L.length} 則）。</div>
+ if(view==='sum')body=`<div class="note" style="margin-top:0">最近 ${contextSettings().historyWindow} 則對話依上下文預算以原文保留；更早的對話會整理成「每日摘要」，每兩天再整理成「章節摘要」。${CFG.mode==='live'?'AI 模式由模型撰寫摘要。':'示範模式用範本擷取。'}目前已整理到第 ${S.sumIdx} 則（共 ${L.length} 則）。</div>
   <div class="row"><button class="btn" data-mem="sumnow">手動摘要現在</button><button class="btn g" data-mem="savesum">儲存摘要修改</button></div>
   <h3 class="mh">章節摘要</h3>${S.chapters.map((c,i)=>`<label>${esc(c.title)}</label><textarea class="chT" data-i="${i}">${esc(c.text)}</textarea>`).join('')||'<div class="empty">還沒有章節。</div>'}
   <h3 class="mh">每日摘要</h3>${S.daily.map((d,i)=>`<label>第${d.day}天${d.ch?`（已收進第${d.ch}章）`:''}</label><textarea class="dyT" data-i="${i}">${esc(d.text)}</textarea>`).join('')||'<div class="empty">還沒有每日摘要。</div>'}`;
- if(view==='log')body=`<div class="note" style="margin-top:0">完整原始紀錄，永遠不會被刪除（共 ${L.length} 則）。灰色的部分已經整理進摘要，不再原文送給 AI。</div><div class="rawlog">${L.map((m,i)=>`<div class="${i<S.sumIdx?'old':''}"><em>#${i+1} ${m.day?slotStr(m.day,m.slot):''}</em> ${m.role==='user'?`<b style="color:var(--gold)">${esc(S.meta.player)}${m.to&&CHARS[m.to]?'→'+nm(m.to):''}</b>：${esc(m.text)}`:m.role==='ai'?(m.segs||[]).map(s=>`<b>${esc(s.name||'旁白')}</b>：${esc(s.text.trim())}`).join('<br>'):m.role==='sys'?`<span style="color:#9fc3ff">${esc(m.text)}</span>`:'［插圖］'}</div>`).join('')}</div>`;
+ if(view==='log')body=`<div class="note" style="margin-top:0">完整原始紀錄，永遠不會被刪除（共 ${L.length} 則）。灰色的部分已經整理進摘要；是否送出原文依上下文設定與預算。</div><div class="rawlog">${L.map((m,i)=>`<div class="${i<S.sumIdx?'old':''}"><em>#${i+1} ${m.day?slotStr(m.day,m.slot):''}</em> ${m.role==='user'?`<b style="color:var(--gold)">${esc(S.meta.player)}${m.to&&CHARS[m.to]?'→'+nm(m.to):''}</b>：${esc(m.text)}`:m.role==='ai'?(m.segs||[]).map(s=>`<b>${esc(s.name||'旁白')}</b>：${esc(s.text.trim())}`).join('<br>'):m.role==='sys'?`<span style="color:#9fc3ff">${esc(m.text)}</span>`:'［插圖］'}</div>`).join('')}</div>`;
  if(view==='io')body=`<div class="row" style="margin-top:0"><button class="btn" data-mem="exmd">匯出記憶（.md）</button><button class="btn g" data-mem="extxt">匯出記憶（.txt）</button><button class="btn g" data-mem="import">匯入記憶</button><button class="btn g" data-mem="preview">預覽</button><input type="file" id="memFile" accept=".md,.txt,.markdown,text/markdown,text/plain" style="display:none"></div>
   <div class="note">.md 包含：世界狀態、釘選事實、每個角色的好感度／持有物品／記憶、裝備欄、背包（物資／裝備／重要物品）、物品紀錄、劇情線、章節與每日摘要。修改後匯入會先顯示差異，再選擇「合併」或「取代」。物品紀錄只供閱讀，匯入時略過。</div>
   <div class="row"><label class="sw"><input type="checkbox" id="autoBk" ${CFG.autoBackup?'checked':''}> 自動備份（每次章節摘要時，在瀏覽器保存最新的 .md）</label>${bk?`<button class="btn g sm" data-mem="viewbk">檢視備份（${new Date(bk.t).toLocaleString('zh-TW')}）</button>`:'<small style="color:var(--mut)">尚無自動備份</small>'}</div>`;
@@ -3019,7 +3022,7 @@ handleUser=async function(text,opt={}){
   if(auto&&live){um.mode='scene';um.to=focus}
   pushMsg(um);const snap=JSON.stringify(S);typingEl(kind==='inner'?null:(to||null));
   let res;try{res=await genReply(q,t=>{const b=$('#typing .bub');if(b){b.classList.remove('typing');b.innerHTML=fmt(stripTagsLive(t))||'…';scrollDown()}})}
-  catch(e){$('#typing')?.remove();toast('AI 呼叫失敗，已改用示範回覆');pushMsg({role:'sys',text:`【AI 連線失敗：${String(e.message||e).slice(0,140)}${e.hint?' 提示：'+e.hint.slice(0,120):''} 這一句改用示範模式回覆。】`});typingEl(to);const md=CFG.mode;CFG.mode='demo';try{res=await genReply({...q,mode:kind})}finally{CFG.mode=md}res.live=false}
+  catch(e){$('#typing')?.remove();if(e.localStop341){toast(e.message);pushMsg({role:'sys',text:'【AI 回覆暫停：'+e.message+'】'});autosave();return}toast('AI 呼叫失敗，已改用示範回覆');pushMsg({role:'sys',text:`【AI 連線失敗：${String(e.message||e).slice(0,140)}${e.hint?' 提示：'+e.hint.slice(0,120):''} 這一句改用示範模式回覆。】`});typingEl(to);const md=CFG.mode;CFG.mode='demo';try{res=await genReply({...q,mode:kind})}finally{CFG.mode=md}res.live=false}
   // AI 判斷的結果寫回玩家氣泡
   let fk=kind,fto=to;
   if(res.live&&auto){const ip=res.interp||{};fk=['say','act','inner','scene','mix'].includes(ip.kind)?ip.kind:kind;fto=ip.to&&ip.to!=='all'?resolveChar(ip.to):null;if(fto&&!h.includes(fto))fto=null;
@@ -3030,10 +3033,10 @@ handleUser=async function(text,opt={}){
   if(fk!=='inner'){await passTime(turnMinutes(fk==='mix'?'mix':fk),true)}
   autosave();
  }finally{BUSY=false;$('#send').disabled=false;renderAddrBar();renderPending()}};
-reroll=async function(){const m=lastAI();if(!m||!m.snap||!m.q||BUSY)return;const rs=S.rs;const idx=L.indexOf(m);
- S=JSON.parse(m.snap);S.rs=rs+7;S.pendingNew=null;L=L.slice(0,idx);renderAll();renderMsgs();
+reroll=async function(){const m=lastAI();if(!m||!m.snap||!m.q||BUSY)return;const rs=S.rs;const idx=L.indexOf(m);const priorS=S,priorL=L,keepContext=S.context341;
+ S=JSON.parse(m.snap);if(keepContext)S.context341=keepContext;S.rs=rs+7;S.pendingNew=null;L=L.slice(0,idx);renderAll();renderMsgs();
  BUSY=true;try{const q={...m.q};if(q.kind&&q.kind!=='inner')q.cast=castTurn(q.kind,q.to,q.say||q.text);typingEl(q.mode==='inner'?null:q.to);let res;
-  try{res=await genReply(q)}catch(e){const md=CFG.mode;CFG.mode='demo';try{res=await genReply({...q,mode:q.kind||q.mode})}finally{CFG.mode=md}}
+  try{res=await genReply(q)}catch(e){if(e.localStop341){S=priorS;L=priorL;$('#typing')?.remove();renderAll();renderMsgs();toast(e.message+' 原回覆已保留。');autosave();return}const md=CFG.mode;CFG.mode='demo';try{res=await genReply({...q,mode:q.kind||q.mode})}finally{CFG.mode=md}}
   const msg=await playAI(res.raw,{to:q.to,q,snap:JSON.stringify(S),instant:!!res.live});msg.cast=res.cast||q.cast||null;if(res.props&&res.props.length)proposeNew(res.props[0],msg);autosave()}finally{BUSY=false;renderPending()}};
 
 /* ---------- 6. 輸入列：模式選擇（每個存檔記住） ---------- */
@@ -3415,7 +3418,7 @@ function loreTurn(){return L.filter(m=>m.role==='user').length}
 function keyHit(k,text,e){if(!k)return false;const m=/^\/(.+)\/([a-z]*)$/.exec(k);if(m){try{return new RegExp(m[1],m[2]).test(text)}catch(err){return false}}
  const t=e.caseSensitive?text:text.toLowerCase(),kk=e.caseSensitive?k:k.toLowerCase();
  if(e.wholeWords&&/^[\w\s-]+$/.test(kk)){return new RegExp('(^|[^\\w])'+kk.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'($|[^\\w])',e.caseSensitive?'':'i').test(text)}return t.includes(kk)}
-function scanText(depth){const ms=L.filter(m=>m.role==='user'||m.role==='ai').slice(-Math.max(1,depth||6));
+function scanText(depth){const cfg=contextSettings();const ms=L.filter(m=>m.role==='user'||(cfg.scanAI&&m.role==='ai')).slice(-Math.max(1,Math.min(depth??cfg.scanDepth,cfg.scanDepth)));
  return ms.map(m=>m.role==='user'?m.text:(m.segs||[]).map(s=>s.text).join(' ')).join('\n')+'\n'+(S?LOCS[S.loc].name+' '+here().map(nm).join(' '):'')}
 function loreEval(opt={}){const present=opt.present||(S?here():[]);const t=S?loreTurn():0;const st=S?(S.loreState=S.loreState||{}):{};const out=[],why={};
  const books=KB.books.filter(b=>b.enabled&&(!b.charId||(KB.chars.find(x=>x.id===b.charId)?.enabled&&present.includes(b.charId))));
@@ -3436,15 +3439,15 @@ function loreEval(opt={}){const present=opt.present||(S?here():[]);const t=S?lor
   if(e.useProb&&e.probability<100&&!opt.noRandom){const RL=S?(S.loreRoll=S.loreRoll||{}):{};let ok;if(RL[e.id]&&RL[e.id].t===t)ok=RL[e.id].ok;else{ok=(typeof rand==='function'&&S?rand():Math.random())*100<e.probability;if(S)RL[e.id]={t,ok}}if(!ok){skipped.push({x,why:`機率未觸發（${e.probability}%）`});continue}}
   fire(x,`關鍵字「${hk}」`)}
  // 遞迴：已觸發條目的內容可再觸發其他條目（最多 3 輪，防止無限循環）
- for(let round=0;round<3;round++){const recText=out.filter(x=>x.b.recursive!==false&&!x.e.preventRec).map(x=>x.e.content).join('\n');if(!recText)break;let added=0;
+ for(let round=0;round<(contextSettings().recursive?contextSettings().recSteps:0);round++){const recText=out.filter(x=>x.b.recursive!==false&&!x.e.preventRec).map(x=>x.e.content).join('\n');if(!recText)break;let added=0;
   for(const x of cand){if(out.includes(x)||x.e.excludeRec||x.e.constant||x.b.recursive===false||passFilters(x))continue;const hk=x.e.keys.find(k=>keyHit(k,recText,x.e));if(hk&&secOK(x.e,recText)){fire(x,`遞迴（被其他條目的「${hk}」觸發）`);added++}}if(!added)break}
  // 分組：同組只留順序最高者
  const groups={};for(const x of out)if(x.e.group){(groups[x.e.group]=groups[x.e.group]||[]).push(x)}
  let res=out.filter(x=>!x.e.group||groups[x.e.group].sort((a,b)=>b.e.priority-a.e.priority)[0]===x);
  out.filter(x=>!res.includes(x)).forEach(x=>skipped.push({x,why:`同組「${x.e.group}」已有順序更高的條目`}));
- res.sort((a,b)=>(b.e.constant-a.e.constant)||(b.e.priority-a.e.priority));
+ res.sort((a,b)=>(b.e.priority-a.e.priority)||(b.e.constant-a.e.constant));
  // 每本書的 token 上限
- const used={};res=res.filter(x=>{const cap=x.b.tokenBudget|0;if(!cap)return true;const tk=estTok(x.e.content);used[x.b.id]=(used[x.b.id]||0)+tk;if(used[x.b.id]>cap){skipped.push({x,why:'超過這本書的 token 上限'});return false}return true});
+ const used={};res=res.filter(x=>{const cap=x.b.tokenBudget|0;if(!cap)return true;const tk=estTok(x.e.content);if((used[x.b.id]||0)+tk>cap){skipped.push({x,why:'超過這本書的 token 上限'});return false}used[x.b.id]=(used[x.b.id]||0)+tk;return true});
  if(LORE_COMMIT&&S){res.forEach(x=>{const s=st[x.e.id]=st[x.e.id]||{};if(s.last===t)return;s.last=t;const inSticky=x.e.sticky&&s.start!=null&&t>s.start&&t-s.start<x.e.sticky;if(!inSticky){s.start=t;s.cdUntil=x.e.cooldown?t+Math.max(1,x.e.sticky||0)+x.e.cooldown:null}})}
  return{res:res.map(x=>({...x,hit:why[x.e.id]})),skipped}}
 loreMatches=function(ctx,opt={}){const r=loreEval({...opt,text:ctx});let res=r.res;if(opt.onlyKeyed)res=res.filter(x=>!/常駐|黏滯/.test(x.hit));
@@ -3480,7 +3483,7 @@ function safeRec(r){r.card=r.card&&typeof r.card==='object'?r.card:{};r.card.nam
 function replyKey(raw){return String(raw).replace(/<choices>[\s\S]*?<\/choices>/g,'').replace(/<[^>]*>/g,'').replace(/\s+/g,'').slice(0,200)}
 {const _gr=genReply;let failN=0;genReply=async function(q,onDelta){let res,prev=L.filter(m=>m.role==='ai').slice(-3).map(m=>replyKey(m.raw||''));
  for(let i=0;i<3;i++){res=await _gr(q,onDelta);if(res.live)break;if(!prev.includes(replyKey(res.raw)))break}   // 示範模式：最多重抽 3 次
- if(res.live){failN=0;const k=replyKey(res.raw);if(!k){throw new AIError('模型回應是空的（已停止，不會自動重試）')}if(prev[prev.length-1]===k){toast('AI 回覆和上一則相同，已停止重複，請換個說法或按「重說」');res.raw='【系統：AI 回覆和上一則完全相同，已略過。】<choices>看看四周|打開地圖</choices>'}}
+ if(res.live){failN=0;const k=replyKey(res.raw);if(!k){throw new AIError('模型回應是空的（已停止，不會自動重試）')}}
  return res};
  const _hu=handleUser;handleUser=async function(text,opt){const nSys=L.filter(m=>m.role==='sys'&&/AI 連線失敗/.test(m.text)).length;await _hu(text,opt);
   const n2=L.filter(m=>m.role==='sys'&&/AI 連線失敗/.test(m.text)).length;if(n2>nSys){failN++;if(failN>=3&&CFG.mode==='live'){setMode('demo');failN=0;toast('AI 連續 3 次失敗，已切回示範模式（不會自動重試）')}}else failN=0}}
@@ -3977,7 +3980,7 @@ document.addEventListener('change',e=>{if(e.target.id==='cfSpeed'){CFG.timeSpeed
 /* =====================================================================
    v3.2：重新開始、清除所有資料、版本隔離
    ===================================================================== */
-const BUILD_VERSION='3.4.0',DATA_VERSION=32;
+const BUILD_VERSION='3.4.1',DATA_VERSION=32;
 // 記住冒險的起點，重新開始時從這裡開場
 {const _na=newAdventure;newAdventure=function(f){_na(f);if(S){S.meta.start={loc:S.loc,day:S.day,slot:S.slot};saveSlot()}}}
 function advStart(){const s=S.meta&&S.meta.start;return s&&LOCS[s.loc]?s:{loc:'tavern',day:1,slot:3}}
@@ -6074,6 +6077,76 @@ if(typeof pbTab==='function'){const _pt=pbTab;pbTab=function(){let h=_pt.apply(t
 /* 匯出時帶上別名 */
 {const _cc=cardOfChar;cardOfChar=function(cid){const j=_cc.apply(this,arguments);try{const D=CHARS[cid];j.data.name=D.name;if(D.aliases&&D.aliases.length)j.data.extensions.moonshadow=Object.assign({},j.data.extensions.moonshadow,{aliases:D.aliases});if(D.tags&&D.tags.length)j.data.tags=D.tags.slice()}catch(e){}return j}}
 try{NEWS34.push('🧑‍🤝‍🧑 在場／同行同步：AI 叫錯名字（小姐、姊姊、簡體字、英文 id）也認得；同行隊友一定跟著走；不在場的人說話會改成旁白，除非劇情寫他走進來；在場列的「🛠 修正」可以手動加入／移出、合併重複角色','⚔️ 更刺激的委託：懸賞討伐（帶回證明）、清剿巢穴、首領狩獵、地城攻略、險路護送、限時委託、和對手搶功；每天會有危險傳聞','📝 自訂委託與傳聞：「從劇情生成委託」、NPC 求助時 AI 會提出委託讓你決定；委託和傳聞都能新增、編輯、刪除','✏️ 完整角色編輯器：任何角色（原生、匯入、長期、路人）都能改名字、別名、描述、人設、說話風格、標籤、立繪、能力、作息，可以還原、重新匯出 .json')}catch(e){}
+
+/* v3.4.1: one prompt budget, immutable transcript, bounded world-info and retries. */
+const CONTEXT_DEFAULTS=Object.freeze({context:12000,response:1000,lorePct:20,scanDepth:6,scanAI:false,recursive:false,recSteps:2,maxEntries:12,minHistory:10,historyWindow:40,antiRepeat:true,similarity:.9,lastReplies:3,retries:1,frequency:.3,presence:.2,repetition:1.1,penaltyMode:'auto'});
+function contextSettings(){const c={...CONTEXT_DEFAULTS,...(S&&S.context341||{})};for(const[k,l,min,max]of CTX_FIELDS341){const n=Number(c[k]);c[k]=Number.isFinite(n)?Math.max(min,Math.min(max,n)):CONTEXT_DEFAULTS[k];if(!['similarity','frequency','presence','repetition'].includes(k))c[k]=Math.floor(c[k])}return c}
+function setContextSettings(c){if(!S)return;S.context341={...CONTEXT_DEFAULTS,...c};autosave()}
+let LAST_CONTEXT341=null,LAST_CONTEXT_SAVE341=null;
+const chatTokens=ms=>ms.reduce((n,m)=>n+estTok(m.content)+4,0);
+function selectLore341(cap){const c=contextSettings(),commit=LORE_COMMIT;let r;LORE_COMMIT=false;try{r=loreEval()}finally{LORE_COMMIT=commit}const selected=[],seen=new Set(),skipped=r.skipped.map(x=>({name:x.x.e.comment||x.x.e.id,reason:x.why}));let n=0;
+ for(const x of r.res){const key=x.e.content.trim();if(seen.has(key)){skipped.push({name:x.e.comment||x.e.id,reason:'重複條目內容（只注入一次）'});continue}const t=estTok(x.e.content)+12;if(selected.length>=c.maxEntries||n+t>cap){skipped.push({name:x.e.comment||x.e.id,reason:selected.length>=c.maxEntries?'最多啟用條目數':'知識書預算／保留對話優先'});continue}n+=t;seen.add(key);selected.push({...x,tok:t})}if(commit&&S){const t=loreTurn(),st=S.loreState||(S.loreState={});for(const x of selected){const e=x.e,a=st[e.id]||(st[e.id]={});if(a.last===t)continue;a.last=t;if(!(e.sticky&&a.start!=null&&t>a.start&&t-a.start<e.sticky)){a.start=t;a.cdUntil=e.cooldown?t+Math.max(1,e.sticky||0)+e.cooldown:null}}}
+ return{selected,skipped}}
+// Used by the import preview as well as generation. Zero is really zero.
+buildLore=function(){const c=contextSettings(),r=selectLore341(Math.floor(c.context*c.lorePct/100));LORE_POS={before_sys:[],after_sys:[],before_char:[],after_char:[],an:[]};LAST_LORE=[];for(const x of r.selected){(LORE_POS[x.e.position]||LORE_POS.after_char).push(x.e.content);LAST_LORE.push({book:x.b.name,name:x.e.comment||x.e.keys[0]||'條目',hit:x.hit,tok:x.tok})}return LORE_POS.after_char.join('\n')};
+assembleContext=function(to){const c=contextSettings(),all=L.map(toChat).filter(Boolean),win=all.slice(-Math.max(c.historyWindow,c.minHistory));
+ const floor=win.slice(-c.minHistory),floorTokens=chatTokens(floor),retryReserve=c.antiRepeat?160:0;
+ const post=to&&CHARS[to]?.rec?.card?.post_history_instructions;const postText=post?post.slice(0,400):'';
+ const h=here(),order=to?[to,...h.filter(x=>x!==to)]:h;
+ const core=[typeof oocBlock==='function'?oocBlock():'',rulesText(to),order.length?'【在場角色卡】\n'+order.map(x=>cardText(x,x===to)).join('\n\n'):'',stateText()].filter(Boolean).join('\n\n');
+ // Essential system + the history floor are never silently truncated. If impossible, refuse the request.
+ const capacity=c.context-c.response-retryReserve;
+ let remaining=Math.max(0,capacity-estTok(core)-4-floorTokens-(postText?estTok(postText)+4:0)-40);
+ const lr=selectLore341(Math.min(Math.floor(c.context*c.lorePct/100),remaining));
+ const pos={before_sys:[],after_sys:[],before_char:[],after_char:[],an:[]};
+ for(const x of lr.selected)(pos[x.e.position]||pos.after_char).push(x.e.content);
+ let system=core;
+ const block=(a,label)=>a.length?'【'+label+'】\n'+a.join('\n\n'):'';
+ if(pos.before_char.length){const b=block(pos.before_char,'世界知識（角色定義前）');system=system.includes('【在場角色卡】')?system.replace('【在場角色卡】',b+'\n\n【在場角色卡】'):system+'\n\n'+b}
+ system=[block(pos.before_sys,'世界知識'),system,block(pos.after_sys,'世界知識（補充）'),block(pos.after_char,'世界知識（自然運用，不照抄）')].filter(Boolean).join('\n\n');
+ const an=block(pos.an,'作者註記');
+ const systemMessages=()=>[{role:'system',content:system},...(an?[{role:'system',content:an}]:[]),...(postText?[{role:'system',content:postText}]:[])];
+ // Optional memories use only space remaining after essential history and lore.
+ for(const text of [pinsText(),notesText(to),recallText(to)]){const avail=capacity-chatTokens(systemMessages())-floorTokens-12;const t=trimTo(text,Math.max(0,Math.min(avail,Math.floor(c.context*.08))));if(t)system+='\n\n'+t}
+ const cap=capacity-chatTokens(systemMessages());let msgs=floor.slice(),mt=chatTokens(msgs);
+ for(let i=win.length-floor.length-1;i>=0;i--){const m=win[i],t=chatTokens([m]);if(mt+t>cap)break;msgs.unshift(m);mt+=t}
+ const prompt=[{role:'system',content:system},...msgs];if(an){const i=prompt.map(m=>m.role).lastIndexOf('user');prompt.splice(Math.max(1,i),0,{role:'system',content:an})}if(postText)prompt.push({role:'system',content:postText});
+ const total=chatTokens(prompt),loreTokens=lr.selected.reduce((n,x)=>n+x.tok,0),trimmed=all.length-msgs.length;
+ LAST_LORE=lr.selected.map(x=>({book:x.b.name,name:x.e.comment||x.e.keys[0]||'條目',hit:x.hit,tok:x.tok}));LORE_POS=pos;
+ const result={system,msgs,an,prompt,usage:[{k:'system',label:'系統／角色／記憶（不含知識書）',tok:total-mt-loreTokens},{k:'lore',label:'啟用知識書（含標頭估算）',tok:loreTokens},{k:'recent',label:`最近對話（${msgs.length} 則）`,tok:mt},{k:'response',label:'預留回應',tok:c.response}],total,budget:c.context,trimmed,overflow:total+c.response>c.context,selected:LAST_LORE.map(x=>({...x})),skipped:lr.skipped,settings:c};return result};
+function repetitionText(raw){return String(raw||'').replace(/<choices>[\s\S]*?<\/choices>/gi,'').replace(/<[^>]*>/g,'').normalize('NFKC').toLowerCase().replace(/[\s\p{P}\p{S}]/gu,'')}
+function replySimilarity(a,b){a=repetitionText(a);b=repetitionText(b);if(!a||!b)return 0;if(a===b)return 1;const grams=s=>{const m=new Map();for(let i=0;i<s.length-1;i++){const g=s.slice(i,i+2);m.set(g,(m.get(g)||0)+1)}return m};const A=grams(a),B=grams(b);let hit=0;for(const[g,n]of A)hit+=Math.min(n,B.get(g)||0);return 2*hit/Math.max(1,a.length+b.length-2)}
+function penalties341(p,c){if(c.penaltyMode==='off'||PROVIDERS[p.provider]?.format==='anthropic')return{};const mode=c.penaltyMode;
+ // Conservative allowlist. Custom gateways can opt in, reasoning presets (temp=null) are left untouched.
+ const supported=mode!=='auto'||['ollama','lmstudio','deepseek'].includes(p.provider)||(p.provider==='openai'&&p.temp!=null);
+ if(!supported)return{};const o={frequency_penalty:c.frequency,presence_penalty:c.presence};if(p.provider==='lmstudio'||mode==='repeat')o.repeat_penalty=c.repetition;return o}
+liveReply=async function(to,text,onDelta){const c=contextSettings();LORE_COMMIT=true;let ctx;try{ctx=assembleContext(to)}finally{LORE_COMMIT=false}
+ const messages=ctx.prompt.map(m=>({...m}));if(!ctx.msgs.length||ctx.msgs[ctx.msgs.length-1].role!=='user')messages.push({role:'user',content:text});
+ LAST_CONTEXT_SAVE341=S;LAST_CONTEXT341={...ctx,prompt:messages,total:chatTokens(messages),attempts:[],time:new Date().toLocaleString('zh-TW',{timeZone:'Asia/Taipei'})+' 台北時間'};
+ if(LAST_CONTEXT341.total+c.response>c.context){toast('上下文不足：保留對話與系統已超出預算，請提高總上下文或降低保留則數。存檔對話未刪除。');throw Object.assign(new AIError('上下文預算不足（已保留完整紀錄，未送出請求）'),{localStop341:true})}
+ if(ctx.trimmed)toast(`上下文僅送出最近 ${ctx.msgs.length} 則，較舊 ${ctx.trimmed} 則未送出；存檔紀錄完整保留。`);
+ const p=activeProfile(),previous=L.filter(m=>m.role==='ai').slice(-c.lastReplies).map(m=>m.raw||(m.segs||[]).map(x=>x.text).join('\n'));
+ for(let i=0;i<=(c.antiRepeat?c.retries:0);i++){
+  const req=messages.map(m=>({...m}));if(i)req[0].content+='\n【防重複重試】先前候選回覆重複，請直接承接玩家最新行動，推進一個新的具體變化，不要再說先前的開場或重述舊對話。';
+  if(chatTokens(req)+c.response>c.context)throw Object.assign(new AIError('重試所需上下文不足，原對話完整保留。'),{localStop341:true});
+  LAST_CONTEXT341.prompt=req;const delta=chatTokens(req)-LAST_CONTEXT341.total;LAST_CONTEXT341.usage=LAST_CONTEXT341.usage.map(u=>u.k==='system'?{...u,tok:u.tok+delta}:u);LAST_CONTEXT341.total=chatTokens(req);
+  const opts={maxTokens:c.response,penalties:penalties341(p,c)};if(i&&p.temp!=null)opts.temperature=Math.min(PROVIDERS[p.provider]?.format==='anthropic'?1:2,Number(p.temp)+.25*i);
+  if(!c.antiRepeat)opts.onDelta=onDelta;
+  const raw=await callModel(req,opts);const similarity=Math.max(0,...previous.map(x=>replySimilarity(raw,x)));LAST_CONTEXT341.attempts.push({attempt:i+1,similarity,temperature:opts.temperature??p.temp,accepted:!c.antiRepeat||similarity<c.similarity});
+  if(!c.antiRepeat||similarity<c.similarity){if(c.antiRepeat&&typeof onDelta==='function')onDelta(raw);return raw}
+  if(i<c.retries)toast('偵測到重複回覆，正在重新生成（不改動既有對話）…');
+ }
+ // No duplicate tags/ops are ever parsed/applied and no duplicate placeholder is saved as an AI response.
+ throw Object.assign(new AIError('AI 連續產生相似回覆，已停止重試；原對話完整保留。可調整防重複設定或改用其他模型。'),{localStop341:true})};
+const CTX_FIELDS341=[['context','總上下文 tokens',2000,200000,500],['response','回應長度 tokens',100,16000,100],['lorePct','知識書預算（%）',0,60,1],['scanDepth','掃描深度（則）',1,100,1],['recSteps','遞迴最多步數',1,5,1],['maxEntries','最多啟用條目數',0,100,1],['minHistory','保留對話下限（則）',1,100,1],['historyWindow','近期對話上限（則）',1,200,1],['similarity','防重複相似度門檻',.5,1,.01],['lastReplies','比對最近 AI 回覆數',1,10,1],['retries','自動重試次數',0,2,1],['frequency','頻率懲罰',0,2,.1],['presence','出現懲罰',0,2,.1],['repetition','重複懲罰（LM Studio）',1,2,.05]];
+function contextForm341(){const c=contextSettings();return `<div class="note">v3.4.1：設定跟著目前存檔。知識書先讓位給近期對話；預算不足時停止送出，不刪除紀錄。Token 為估算值，請留模型安全餘量。</div><div class="ctxgrid341">${CTX_FIELDS341.map(([k,l,min,max,step])=>`<label>${l}<input data-ctx341="${k}" type="number" min="${min}" max="${max}" step="${step}" value="${c[k]}"></label>`).join('')}</div>${[['recursive','遞迴觸發（預設關閉，避免條目互相擴散）'],['scanAI','掃描 AI 回覆（預設關閉，避免自己的回覆重複觸發）'],['antiRepeat','防重複回覆（接受後才顯示，可能多用一次 API）']].map(([k,l])=>`<label><input type="checkbox" data-ctx341="${k}" ${c[k]?'checked':''}> ${l}</label>`).join('')}<label>懲罰參數支援<select data-ctx341="penaltyMode">${[['auto','自動（已知支援的服務）'],['off','關閉（模型拒絕參數時）'],['openai','自訂服務：頻率／出現懲罰'],['repeat','自訂服務：另送 repeat_penalty']].map(([k,l])=>`<option value="${k}" ${c.penaltyMode===k?'selected':''}>${l}</option>`).join('')}</select></label><div class="note">掃描深度是全域上限，條目／書籍可更短。條目依 priority 由高至低，包含常駐條目也受預算與數量限制。回應長度與預留都算入總上下文。無法完整保留對話下限時會提示調高預算。Anthropic 不送懲罰；未支援溫度的模型不強行升溫。</div><div class="row"><button class="btn" data-context341="save">儲存設定</button><button class="btn g" data-context341="reset">重設預設值</button><button class="btn g" data-context341="debug">上下文檢視</button></div>`}
+function openContext341(){modal('<h2>知識書與上下文設定</h2><div class="stabs">'+[['facts','重要事實'],['chars','角色記憶'],['sum','摘要'],['log','完整紀錄'],['io','匯出入']].map(([k,l])=>`<button class="tab" data-mem="tab:${k}">${l}</button>`).join('')+'</div>'+contextForm341())}
+function debugContext341(){const last=LAST_CONTEXT_SAVE341===S?LAST_CONTEXT341:null;const x=last||assembleContext(S?.talk||null);modal(`<h2>上下文檢視</h2><div class="note">${last?'最後實際送出／嘗試的內容 '+esc(x.time):'尚未送出，以下是預覽'}。不含 API 金鑰。Token 為估算值。</div><p>輸入 ${x.total} + 回應預留 ${x.settings.response} / 總預算 ${x.budget}；近期對話 ${x.msgs.length} 則，未送出 ${x.trimmed} 則。</p><div>${x.usage.map(u=>esc(u.label)+'：'+u.tok).join('<br>')}</div><h3>啟用條目</h3><pre style="white-space:pre-wrap">${esc(JSON.stringify(x.selected,null,2))}</pre><details><summary>略過條目與理由（${x.skipped.length}）</summary><pre style="white-space:pre-wrap">${esc(JSON.stringify(x.skipped,null,2))}</pre></details><h3>實際訊息</h3><pre style="white-space:pre-wrap;overflow-wrap:anywhere">${esc(JSON.stringify(x.prompt,null,2))}</pre><details><summary>防重複紀錄</summary><pre>${esc(JSON.stringify(x.attempts||[],null,2))}</pre></details><button class="btn g" data-context341="open">返回設定</button>`)}
+document.addEventListener('click',e=>{const el=e.target.closest('[data-context341]');if(!el)return;e.preventDefault();e.stopImmediatePropagation();const k=el.dataset.context341;if(k==='open')return openContext341();if(k==='debug')return debugContext341();if(k==='reset'){setContextSettings({...CONTEXT_DEFAULTS});return openContext341()}if(k==='save'){const c=contextSettings();for(const[k,l,min,max]of CTX_FIELDS341){const n=Number(document.querySelector(`[data-ctx341="${k}"]`).value);if(!Number.isFinite(n)||n<min||n>max)return toast(l+'超出允許範圍');c[k]=['similarity','frequency','presence','repetition'].includes(k)?n:Math.floor(n)}for(const k of ['recursive','scanAI','antiRepeat'])c[k]=document.querySelector(`[data-ctx341="${k}"]`).checked;c.penaltyMode=document.querySelector('[data-ctx341="penaltyMode"]').value;if(c.response>=c.context)return toast('回應長度必須小於總上下文');c.historyWindow=Math.max(c.historyWindow,c.minHistory);setContextSettings(c);toast('已儲存本存檔的知識書與上下文設定');openContext341()}},true);
+{const os=openSettings;openSettings=function(){os.apply(this,arguments);$('#mbox').insertAdjacentHTML('beforeend','<div class="row"><button class="btn" data-context341="open">知識書與上下文設定</button><button class="btn g" data-context341="debug">上下文檢視</button></div>')}}
+{const om=openMem;openMem=function(tab){if(tab==='cfg')return openContext341();if(tab==='ctx')return debugContext341();return om.apply(this,arguments)}}
+{const ok=openKB;openKB=function(tab){ok.apply(this,arguments);if(tab==='inject'){const b=$('#kbBudget');if(b)b.parentElement.insertAdjacentHTML('beforeend','<div class="note">上方舊版固定上限已由每存檔百分比預算取代。</div><button class="btn" data-context341="open">知識書預算與上下文設定</button>');if(b){b.disabled=true;const x=document.querySelector('[data-kb="budget"]');if(x)x.disabled=true}}}}
+{const sn=showNews;showNews=function(){sn();$('#mbox').insertAdjacentHTML('afterbegin','<div class="note"><b>v3.4.1：知識書／上下文修正</b><br>統一計算各位置條目與回應預留；近期對話優先、可調掃描／遞迴與防重複；設定按存檔儲存；上下文檢視可查每次實際送出內容。修整僅作用於請求，不刪除對話紀錄。</div>')}}
 
 /* v3.3：手機版——側欄改成抽屜；點遮罩或選了項目就收起 */
 (function(){const tb=$('#topbar');if(!tb)return;
