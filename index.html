@@ -7666,7 +7666,10 @@ async function c37Exec(job){const c=c37();const q=job.req;const p={kind:q.kind||
  const r=await c37Fetch('/prompt',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:wf,client_id:cid})},{timeout:30000});
  let j={};try{j=await r.json()}catch(e){}if(!r.ok||j.error){if(ws)ws.close();throw new Error(c37Err(j,r.status))}
  job.pid=j.prompt_id;job.msg='排隊中…';c37UI();const t0=Date.now(),lim=Math.max(60,Math.min(600,+c.timeout||240))*1000;
- try{for(;;){if(job.cancel)throw Object.assign(new Error('已取消'),{cancel:1});if(Date.now()-t0>lim)throw new Error(`等待逾時（${Math.round(lim/1000)} 秒）。可在設定把逾時調長，或降低解析度。`);
+ try{for(;;){if(job.cancel)throw Object.assign(new Error('已取消'),{cancel:1});if(Date.now()-t0>lim){const now=Date.now();if(!job.qChk||now-job.qChk>5000){job.qChk=now;try{const qq=await (await c37Fetch('/queue')).json();const inQ=[...(qq.queue_running||[]),...(qq.queue_pending||[])].some(x=>x&&x[1]===job.pid);if(inQ)job.lastAct=now}catch(e){}}
+    // ComfyUI 還在跑（有進度或還在佇列）就繼續等，最多 15 分鐘；超過 90 秒完全沒動靜才算逾時
+    if(now-(job.lastAct||t0)>90000||now-t0>900000)throw new Error(`等待逾時（已等 ${Math.round((now-t0)/1000)} 秒，ComfyUI 沒有回應）。可在設定把逾時調長，或降低解析度。`);
+    if(!job.extMsg){job.extMsg=1;try{toast('ComfyUI 還在出圖，超過預設等待時間，會繼續等它完成')}catch(e){}}}
    if(job.wsErr)throw new Error(c37ExecErr(job.wsErr));
    if(job.wsDone||!ws||Date.now()-(job.lastPoll||0)>(ws?5000:1000)){job.lastPoll=Date.now();let h=null;try{h=await (await c37Fetch('/history/'+job.pid)).json()}catch(e){}const it=h&&h[job.pid];
     if(it){const st=it.status||{};if(st.status_str==='error'){const m=(st.messages||[]).find(x=>x[0]==='execution_error');throw new Error(c37ExecErr(m&&m[1]&&m[1].exception_message))}
@@ -7676,7 +7679,7 @@ async function c37Exec(job){const c=c37();const q=job.req;const p={kind:q.kind||
  finally{if(ws)try{ws.close()}catch(e){}}}
 function c37WS(cid,job){return new Promise((res,rej)=>{let ws;try{ws=new WebSocket(c37Base().replace(/^http/,'ws')+'/ws?clientId='+encodeURIComponent(cid))}catch(e){return rej(e)}const tm=setTimeout(()=>{try{ws.close()}catch(e){}rej(new Error('ws timeout'))},3000);
  ws.onopen=()=>{clearTimeout(tm);res(ws)};ws.onerror=()=>{clearTimeout(tm);rej(new Error('ws'))};
- ws.onmessage=ev=>{if(typeof ev.data!=='string')return;let m;try{m=JSON.parse(ev.data)}catch(e){return}const d=m.data||{};if(job.pid&&d.prompt_id&&d.prompt_id!==job.pid)return;
+ ws.onmessage=ev=>{if(typeof ev.data!=='string')return;let m;try{m=JSON.parse(ev.data)}catch(e){return}const d=m.data||{};if(job.pid&&d.prompt_id&&d.prompt_id!==job.pid)return;if(d.prompt_id===job.pid||m.type==='progress')job.lastAct=Date.now();
   if(m.type==='progress'){job.started=true;job.step=[d.value,d.max];c37Prog(job)}
   else if(m.type==='executing'){if(d.node===null&&d.prompt_id===job.pid)job.wsDone=true;else if(d.prompt_id===job.pid){job.started=true;if(job.node!=null&&job.node!==d.node)job.done.add(String(job.node));job.node=d.node;job.step=null;c37Prog(job)}}
   else if(m.type==='execution_cached'){(d.nodes||[]).forEach(n=>job.done&&job.done.add(String(n)));c37Prog(job)}
