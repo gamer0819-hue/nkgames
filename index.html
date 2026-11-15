@@ -5145,19 +5145,19 @@ function showRouteCard(p){const box=$('#wmInfo');if(!box)return;const l=LOCS[p.t
 function stepsOf(path,km){const pts=[];let tot=0;for(let i=1;i<path.length;i++)tot+=Math.hypot(path[i][0]-path[i-1][0],path[i][1]-path[i-1][1]);const n=Math.max(3,Math.min(30,Math.ceil(tot/(tot>30?3:.6))));
  for(let s=1;s<=n;s++){let want=tot*s/n,acc=0;for(let i=1;i<path.length;i++){const L=Math.hypot(path[i][0]-path[i-1][0],path[i][1]-path[i-1][1]);if(acc+L>=want-1e-9){const f=L?(want-acc)/L:1;pts.push([path[i-1][0]+(path[i][0]-path[i-1][0])*f,path[i-1][1]+(path[i][1]-path[i-1][1])*f]);break}acc+=L}}return{pts,tot}}
 async function routeRun(){const P=ROUTE_PREV;if(!P||BUSY)return;ROUTE_PREV=null;const from=S.loc,to=P.to;const e=P.est;const total=walkMin(e);const{pts,tot}=stepsOf(e.path.length>1?e.path:[[M.player.x,M.player.y],[wmPosOf(to).x,wmPosOf(to).y]]);
- ROUTE={to,pts,i:0,from,e};setView('map');pushMsg({role:'user',text:`（出發前往${LOCS[to].name}）`});BUSY=true;let stopped=null;const t0=tsNow();
+ ROUTE={to,pts,i:0,from,e};if(typeof roadBegin372==='function')roadBegin372(to);setView('map');pushMsg({role:'user',text:`（出發前往${LOCS[to].name}）`});BUSY=true;let stopped=null;const t0=tsNow();
  try{for(let i=0;i<pts.length;i++){ROUTE.i=i;const[x,y]=pts[i];const min=Math.round(total/pts.length);const ad=CFG.aiDirector;CFG.aiDirector=false;try{await passTime(min,false,true)}finally{CFG.aiDirector=ad}
-   M.setPlayer(x,y,true);M.reveal(x,y,1.5);if(typeof npcTick==='function')npcTick(false);M.redraw();
+   M.setPlayer(x,y,true);M.reveal(x,y,1.5);if(i<pts.length-1&&typeof roadStep372==='function')roadStep372(x,y,to);if(typeof npcTick==='function')npcTick(false);M.redraw();
    const o={level:Math.hypot(x,y)<3?'area':'region',biome:BIOME_P[M.biomeAt(x,y)]||'plains',road:onRoad(x,y),danger:areaDangerAt(x,y),x,y,town:Math.hypot(x,y)<1};
    const g=i<pts.length-1?spawnAt(o,`rt:${from}:${to}:${S.day}:${Math.floor(S.clock/60)}:${i}`):null;
    if(g){g.loc=null;seeMon(g);BUSY=false;const res=await encounterFlow(g,{travel:true});BUSY=true;if(res==='back'||res==='lose'){stopped={x,y,res};break}}
    else if(i<pts.length-1&&typeof roadPasserby==='function'){const pb=roadPasserby(o,i);if(pb){BUSY=false;await roadMeet(pb);BUSY=true}}
    if(!FAST)await sleep(160)}}
  finally{BUSY=false;ROUTE=null}
- if(stopped){if(stopped.res==='lose')return;const k=S.loc==='wildA'?'wildB':'wildA';const b=WorldMap.BIOME_ZH[M.biomeAt(stopped.x,stopped.y)]||'荒野';S.wild=S.wild||{};S.wild[k]={x:stopped.x,y:stopped.y,name:`往${LOCS[to].name}路上的${b}`,biome:b};wildLoc(k,S.wild[k]);
-  ROUTE_ARRIVE={to:k,min:0,line:`【🧭 旅程中斷：你們停在往${LOCS[to].name}的路上（${b}）。現在是第 ${S.day} 天 ${clockStr()}。】`};await travel(k);return}
- const line=`【🗺️ 從${LOCS[from]?.name||'原地'}到${LOCS[to].name}：${e.km} 公里，${e.road?'沿著道路':'沒有現成的路'}${e.ride==='horse'?'騎馬':e.ride==='cart'?'坐馬車':'走路'}約 ${(+e.hours).toFixed(1)} 小時${e.sched&&e.sched.nights?`，途中過夜 ${e.sched.nights} 晚`:''}。現在是第 ${S.day} 天 ${clockStr()}。${partyList().length?partyList().map(nm).join('、')+'一路同行。':''}】`;
- ROUTE_ARRIVE={to,min:0,line};await travel(to)}
+ if(stopped){if(stopped.res==='lose'){if(typeof roadEnd372==='function')roadEnd372();return}const k=S.loc==='wildA'?'wildB':'wildA';const b=WorldMap.BIOME_ZH[M.biomeAt(stopped.x,stopped.y)]||'荒野';S.wild=S.wild||{};S.wild[k]={x:stopped.x,y:stopped.y,name:`往${LOCS[to].name}路上的${b}`,biome:b};wildLoc(k,S.wild[k]);
+  ROUTE_ARRIVE={to:k,min:0,line:`【🧭 旅程中斷：你們停在往${LOCS[to].name}的路上（${b}）。現在是第 ${S.day} 天 ${clockStr()}。】`};await travel(k);if(typeof roadEnd372==='function')roadEnd372();return}
+ if(typeof roadDest372==='function')roadDest372(to); const line=`【🗺️ 從${LOCS[from]?.name||'原地'}到${LOCS[to].name}：${e.km} 公里，${e.road?'沿著道路':'沒有現成的路'}${e.ride==='horse'?'騎馬':e.ride==='cart'?'坐馬車':'走路'}約 ${(+e.hours).toFixed(1)} 小時${e.sched&&e.sched.nights?`，途中過夜 ${e.sched.nights} 晚`:''}。現在是第 ${S.day} 天 ${clockStr()}。${partyList().length?partyList().map(nm).join('、')+'一路同行。':''}】`;
+ ROUTE_ARRIVE={to,min:0,line};await travel(to);if(typeof roadEnd372==='function')roadEnd372()}
 window.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-wm="go"],[data-wm="explore"],[data-rt]');if(!b||!M)return;
  if(b.dataset.rt){e.preventDefault();e.stopImmediatePropagation();if(b.dataset.rt==='go')routeRun();else{ROUTE_PREV=null;M.redraw();wmInfo()}return}
  if(b.dataset.wm==='go'&&WM_SEL){e.preventDefault();e.stopImmediatePropagation();const p=WM_SEL.place;WM_SEL=null;M.route=null;const k=p.id==='home'?'market':wmEnsureLoc(p);if(!k)return;if(!LOCS[k].far&&!isFar(S.loc))return travel(k);if(sameArea(S.loc,k))return travel(k);routeGo(k);return}
@@ -5331,7 +5331,7 @@ function btEnd(out){BT.done=true;BT.out=out;BT.busy=false;const c=BT.c;const kil
  BT.summary=`戰鬥（${BT.turn} 回合）：${line}`;S.encNote=BT.summary;btRender();if(FAST&&BT.opt.auto)btClose()}
 async function btClose(){if(!BT)return;const B=BT;BT=null;const el=$('#battle');if(el){el.classList.add('bt-out');await sleep(FAST?10:450);el.remove()}document.body.classList.remove('inbattle');
  pushMsg({role:'sys',text:`【⚔️ ${B.summary}】`});
- if(B.out==='lose'){const ad=CFG.aiDirector;CFG.aiDirector=false;try{await passTime(240,false,true)}finally{CFG.aiDirector=ad}const a=areaOfLoc(S.loc);let back=B.g.dungeon?dgDef(B.g.dungeon).near:(a&&areaLoc(a)&&!LOCS[areaLoc(a)].dungeon?areaLoc(a):'market');if(back&&back!==S.loc){ROUTE_ARRIVE={to:back,min:0,line:`【💀 你們被救回了${LOCS[back].name}，休息了幾個小時。】`};await travel(back)}}
+ if(B.out==='lose'){const ad=CFG.aiDirector;CFG.aiDirector=false;try{await passTime(240,false,true)}finally{CFG.aiDirector=ad}const a=areaOfLoc(S.loc);let back=B.g.dungeon?dgDef(B.g.dungeon).near:(a&&areaLoc(a)&&!LOCS[areaLoc(a)].dungeon?areaLoc(a):'market');if(typeof loseBack372==='function'){const lb=loseBack372(B);if(lb!==undefined)back=lb}if(back&&back!==S.loc){ROUTE_ARRIVE={to:back,min:0,line:`【💀 你們被救回了${LOCS[back].name}，休息了幾個小時。】`};await travel(back)}}
  // AI 只在戰鬥結束時描寫一次（省呼叫次數）
  if(CFG.mode==='live'&&canLive()&&!B.opt.travel){try{await handleUser(`（戰鬥結束：${B.summary}）`,{mode:'act'})}catch(e){}}
  renderAll();autosave();B.res({out:B.out==='talked'||B.out==='scared'?'win':B.out,summary:B.summary})}
@@ -9721,20 +9721,72 @@ document.addEventListener('change',e=>{if(e.target&&e.target.id==='img37AutoBg')
 document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('#img37StripBtn');if(!b)return;e.preventDefault();stripCurrentPor372(typeof CS_ID!=='undefined'?CS_ID:b.dataset.id).catch(er=>toast('去背失敗：'+(er.message||er)))});
 
 /* ---------- OOC → 角色＋世界＋物品連動（Neil 2026-11-16：OOC 必須讓角色、世界、物品一起動） ---------- */
-function oocWorld372(text){const t=String(text||'');const done=[],facts=[];
+function oocWorld372(text,opt){const t=String(text||'');const done=[],facts=[];let min=0;const main=!!(opt&&opt.main);
  const verb=/(吃|喝|享用|品嚐|嚐|烤|煮|燉|分食|分享|用掉|使用|喝掉|吃掉|啃|嚼|乾杯)/;if(!verb.test(t))return{done,facts};
  const core=n=>String(n||'').replace(/^(生|熟|烤|燻|乾|醃|新鮮的?|一塊|一份|一瓶|一杯)+/,'').replace(/[（(].*$/,'');
  const inv=(S.inv||[]).filter(i=>i&&i.qty>0);const used=[];
  for(const it of inv){const c=core(it.name);if(!c||c.length<1)continue;if(t.includes(it.name)||(c.length>=2&&t.includes(c))){const share=/(我們|一起|分享|分食|大家|請你|請她|請他)/.test(t)&&it.qty>=2?2:1;
   if(typeof loseItem==='function'&&loseItem(it.name,share,{silent:true})){used.push(it.name+(share>1?' ×'+share:''))}}}
- if(used.length){done.push('從背包用掉 '+used.join('、'));facts.push('（系統已真的從背包扣除：'+used.join('、')+'。照這個演出，不要再提背包裡還有。）');
-  if(typeof PR35!=='undefined'&&PR35){PR35.min=(PR35.min||0)+30;done.push('時間經過約 30 分鐘')}
+ if(used.length){done.push('從背包用掉 '+used.join('、'));facts.push('（系統已真的從背包扣除：'+used.join('、')+'。照這個演出，不要再提背包裡還有，也不要再用物品標籤扣一次。）');
+  if(main){min=30;done.push('時間經過約 30 分鐘')}else if(typeof PR35!=='undefined'&&PR35){PR35.min=(PR35.min||0)+30;done.push('時間經過約 30 分鐘')}
   try{renderMemSide()}catch(e){}}
  else{const food=t.match(/(烤|燉|煮)?([\u4e00-\u9fff]{1,4}(肉|酒|湯|麵包|餅|果|茶|蛋|魚))/);if(food)facts.push('（背包裡沒有「'+food[0]+'」。角色不能憑空拿出來；可以在故事裡說明沒有、提議去買或在店裡點，但不要假裝已經在吃。）')}
- return{done,facts}}
+ return{done,facts,min}}
 
 /* 已確認出發的旅程：路上遇敵／交涉後，抵達時不要再問一次、也不要被擋回原地（Neil 2026-11-16 蘆湖鎮） */
 function tripOk372(to){try{if(typeof ROUTE_ARRIVE!=='undefined'&&ROUTE_ARRIVE&&ROUTE_ARRIVE.to===to)return true;const o=V372._okTo;if(o&&Date.now()-o.t<2*3600e3){if(o.to===to)return true;const n=LOCS[to]&&LOCS[to].name,m=LOCS[o.to]&&LOCS[o.to].name;if(n&&m&&(n===m||n.indexOf(m)>=0||m.indexOf(n)>=0))return true;try{if(sameTown372(to,o.to))return true}catch(e){}}}catch(e){}return false}
+
+/* ---------- A3（Neil 2026-11-16）：走在路上時位置一直算在出發的城鎮 ----------
+   舊流程：點地圖出發後，只有地圖標記在動，S.loc 一直停在出發地（例如灰石鎮市集）。
+   所以路上打輸會被「救回所在區域的據點」＝起點；戰鬥背景、場景、在場角色也都顯示起點；
+   畫面一更新（過時段、戰鬥結束）地圖標記也會跳回起點。
+   改成：每走一步就把玩家放在「往目的地的路上」這個臨時野外地點（存在 S.wild.wildR，讀檔也找得回來）。 */
+function roadBegin372(to){try{if(!S||!LOCS[to])return;const l=LOCS[to];S._road372={to,wm:l.wm||null,name:l.name,wx:l.wx,wy:l.wy}}catch(e){}}
+function roadStep372(x,y,to){try{if(!S||!M||typeof wildLoc!=='function')return;
+ const b=(WorldMap.BIOME_ZH&&WorldMap.BIOME_ZH[M.biomeAt(x,y)])||'荒野';const dn=(LOCS[to]&&LOCS[to].name)||(S._road372&&S._road372.name)||'目的地';
+ S.wild=S.wild||{};const w={x,y,name:`往${dn}的路上（${b}）`,biome:b,road:to};S.wild.wildR=w;wildLoc('wildR',w);
+ if(S.loc!=='wildR'){S.loc='wildR';S.sceneImg=null;if(S.talk&&!(partyList()||[]).includes(S.talk))S.talk=null;S.active=S.talk}
+ (partyList()||[]).forEach(c=>{if(S.chars[c])S.chars[c].loc='wildR'})}catch(e){console.warn('roadStep372',e)}}
+// 抵達前確認目的地還在（傳聞地點、AI 新增的地點）；不見了就從地圖上的同一個地點補回來
+function roadDest372(to){try{if(LOCS[to]||!S||!M)return;const R=S._road372;if(!R||R.to!==to)return;
+ const p=(R.wm&&M.getPlace(R.wm))||M.places.find(q=>q.name===R.name)||M.getPlace(to);if(p){if(typeof WM_ROLE==='object'&&WM_ROLE[p.id])wmLoc(p.id,p,WM_ROLE[p.id]);else wmLoc(to,p,roleOfType(p))}}catch(e){console.warn('roadDest372',e)}}
+function roadEnd372(){try{if(!S)return;S._road372=null;if(S.loc==='wildR')return;if(Object.values(S.chars||{}).some(c=>c&&c.loc==='wildR'))return;if(S.wild)delete S.wild.wildR;delete LOCS.wildR}catch(e){}}
+// 路上（或野外）被打倒：在最近的有人地方醒來；附近 3 公里內沒有城鎮就在原地路邊醒來，不再一律送回出發的城鎮
+function loseBack372(B){try{const l=LOCS[S.loc];if(!B||B.g&&B.g.dungeon)return undefined;if(!(B.opt&&B.opt.travel)&&!(l&&l.wild))return undefined;
+ const pos=typeof wmPosOf==='function'?wmPosOf(S.loc):{x:M.player.x,y:M.player.y};let best=null,bd=1e9;
+ for(const p of (M&&M.places)||[]){if(p.inner||p.rumor||p.atlas==='dg')continue;const d=Math.hypot(p.x-pos.x,p.y-pos.y);if(d<bd){const k=p.id==='home'||p.type==='home'?'market':LOCS[p.id]?p.id:p.atlas?null:(typeof wmEnsureLoc==='function'?wmEnsureLoc(p):null);if(k&&LOCS[k]&&!LOCS[k].dungeon){bd=d;best=k}}}
+ if(best&&bd<=3)return best;
+ pushMsg({role:'sys',text:`【💀 你們在${l?l.name:'路邊'}醒過來，附近沒有村鎮，只好原地包紮休息了幾個小時。】`});return S.loc}catch(e){console.warn('loseBack372',e);return undefined}}
+// 抵達路上的停留點時，故事標籤寫的是「這裡」的地名（例如「往格洛港路上的平原」），不要誤判成要去格洛港而跳出「沒有這個地方」
+{const _ao=typeof applyOp==='function'?applyOp:null;if(_ao)applyOp=function(op,msg){try{if(op&&S&&LOCS[S.loc]&&(op.t==='scene'||op.t==='move')){const a=op.a||{};const cur=LOCS[S.loc].name||'';const q=String(op.t==='scene'?(a.location||''):(a.to||'')).trim();
+  if(cur&&q&&(q===cur||(LOCS[S.loc].wild&&q.length>=cur.length&&q.indexOf(cur)>=0))){if(op.t==='move'){if(typeof isPlayerName==='function'&&isPlayerName(a.name))return}else op={t:op.t,a:Object.assign({},a,{location:undefined}),v:op.v,raw:op.raw}}}}catch(e){}
+  return _ao.call(this,op,msg)}}
+/* ---------- B2（Neil 2026-11-16）：主畫面（非私下時光）的 OOC 也要讓角色＋世界＋物品一起動 ----------
+   1) oocTurn（主畫面 OOC 管線）先做世界同步：扣背包物品、用 passTime 推進時間、把事實放進 S.oocOnce
+   2) 只有 OOC、沒有故事句子時，接著用「*指示*」演一段故事，讓目前的角色照著回應（需要接文字 AI）
+   原本的 OOC 動作指令（換裝、叫人、移動…）與確認卡照舊；有確認卡或換裝選單在等你時不自動演。 */
+const V372B2={};
+{const _ot=typeof oocTurn==='function'?oocTurn:null;if(_ot)oocTurn=async function(notes){
+  let ww=null;try{if(S&&!(typeof isPriv371==='function'&&isPriv371()))ww=oocWorld372((notes||[]).join('；'),{main:true})}catch(e){console.warn('oocWorld main',e)}
+  const r=await _ot.apply(this,arguments);
+  try{if(ww){if(ww.min&&typeof passTime==='function')await passTime(ww.min,false,true);
+    if(ww.done.length)pushMsg({role:'oocr',text:'【系統】✅ 世界同步：'+ww.done.join('；')+'。'});
+    if(ww.facts.length)S.oocOnce=(S.oocOnce||[]).concat(ww.facts).slice(-8);
+    if(ww.done.length){try{renderAll();autosave()}catch(e){}}}
+   V372B2.last={ww,r}}catch(e){console.warn('oocTurn372',e)}
+  return r}}
+{const _hu=handleUser;handleUser=async function(text,opt={}){
+  if(BUSY||!S||(typeof isPriv371==='function'&&isPriv371())||typeof splitOOC!=='function')return _hu.apply(this,arguments);
+  let sp=null;try{const whole=INMODE==='ooc'&&!(opt&&opt.to)&&!(opt&&opt.topic);sp=whole?{story:'',ooc:[String(text||'').trim()].filter(Boolean)}:splitOOC(text)}catch(e){}
+  if(!sp||!sp.ooc.length||sp.story)return _hu.apply(this,arguments);
+  const nPick=document.querySelectorAll('#msgs .oocPick371').length;
+  const r=await _hu.apply(this,arguments);
+  try{const live=CFG.mode==='live'&&typeof canLive==='function'&&canLive();
+   const waiting=(typeof V371!=='undefined'&&V371.pending)||document.querySelectorAll('#msgs .oocPick371').length>nPick;
+   const t=sp.ooc.join('；').replace(/^[\s【\[]+|[】\]\s]+$/g,'').trim();
+   V372B2.play={live,waiting:!!waiting,t};
+   if(live&&!waiting&&t&&!BUSY&&!/[？?]\s*$/.test(t))await _hu.call(this,'*'+t+'*',{mode:'act'})}catch(e){console.warn('oocPlay372',e)}
+  return r}}
 
 /* v3.3：手機版——側欄改成抽屜；點遮罩或選了項目就收起 */
 (function(){const tb=$('#topbar');if(!tb)return;
