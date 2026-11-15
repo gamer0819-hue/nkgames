@@ -8216,7 +8216,10 @@ if(typeof privOOC35==='function')privOOC35=async function(notes){return oocRun37
  if(PBUSY35&&!(textArg!=null))return;
  const inp=$('#pv35Inp');const raw=String(textArg!=null?textArg:(inp?inp.value:'')).trim();if(!raw)return;
  const gate=oocGate371(raw,!!PR35.oocMode);
- if(gate.ooc.length&&!gate.story){if(textArg==null&&inp)inp.value='';const was=!!PR35.oocMode;if(was)setPrivOOC35(false);TTS35&&TTS35.stop&&TTS35.stop();return oocRun371(gate.ooc,{priv:true})}
+ if(gate.ooc.length&&!gate.story){if(textArg==null&&inp)inp.value='';const was=!!PR35.oocMode;if(was)setPrivOOC35(false);TTS35&&TTS35.stop&&TTS35.stop();const wt=gate.ooc.join('；');let ww=null;try{if(typeof oocWorld372==='function')ww=oocWorld372(wt)}catch(e){console.warn('oocWorld',e)}
+  const rr=await oocRun371(gate.ooc,{priv:true});
+  try{if(ww&&ww.done.length&&PR35){PR35.hist.push({role:'oocr',text:'【系統】✅ 世界同步：'+ww.done.join('；')+'。',ooc:true});renderPriv35()}if(ww&&ww.facts.length&&PR35)PR35.oocOnce=(PR35.oocOnce||[]).concat(ww.facts).slice(-8)}catch(e){}
+  try{if(PR35&&!V371.pending&&!document.querySelector('#pv35Log .oocPick371')&&CFG.mode==='live'&&canLive()){const t=wt.replace(/^[\s【\[]+|[】\]\s]+$/g,'');if(t&&!PBUSY35)return _ps.call(this,'*'+t+'*',toArg)}}catch(e){console.warn('oocAct',e)}return rr}
  if(gate.ooc.length&&gate.story){if(textArg==null&&inp)inp.value='';if(PR35.oocMode)setPrivOOC35(false);TTS35&&TTS35.stop&&TTS35.stop();await oocRun371(gate.ooc,{priv:true});textArg=gate.story}
  const asked=detectAll371(gate.story||raw,{who:PR35.who,to:toArg});
  const msg=await _ps.call(this,gate.story||textArg,toArg);
@@ -9644,6 +9647,7 @@ function tagToolsHTML372(){const e=typeof esc==='function'?esc:x=>x;
   <label style="margin:0">➕ 推薦詞 <select id="img37TagSel"><option value="">選一個加進提示詞…</option>${opts}</select></label>
   <input id="img37TrIn" placeholder="自訂裝備／服裝（中文），例如：黑色皮革護肩、紅色長披風" style="flex:1 1 240px;min-width:0">
   <button class="btn sm" id="img37TrBtn" type="button">生成並加入</button>
+  <label style="margin:0"><input type="checkbox" id="img37AutoBg" ${autoBgOn372()?'checked':''}> 自動去背（純白背景出圖後去掉）</label><button class="btn sm" id="img37StripBtn" type="button">🧽 幫目前立繪去背（另存新圖）</button>
   <span id="img37TrMsg" class="hint" style="font-size:12px;opacity:.8"></span></div>`}
 function addTagsToPrompt372(tags){const ta=$('#img37P');if(!ta||!tags.length)return 0;const cur=splitTags372(ta.value);const low=cur.map(x=>x.toLowerCase());const add=tags.filter(t=>t&&!low.includes(t.toLowerCase()));if(!add.length)return 0;
  const v=String(ta.value).trim().replace(/[,，]\s*$/,'');ta.value=(v?v+', ':'')+add.join(', ');ta.dispatchEvent(new Event('input',{bubbles:true}));try{paintGloss372()}catch(e){}return add.length}
@@ -9664,6 +9668,70 @@ document.addEventListener('click',async e=>{const b=e.target.closest&&e.target.c
   saveCustomGloss372(pairs);const n=addTagsToPrompt372(pairs.map(p=>p[0]));if(m)m.textContent=n?'已加入：'+pairs.map(p=>p[0]+'（'+p[1]+'）').join('、'):'提示詞裡已經有了';if(inp)inp.value=''}
  catch(err){if(m)m.textContent='翻譯失敗：'+(err&&err.message||err)}finally{b.disabled=false}});
 document.addEventListener('keydown',e=>{if(e.target&&e.target.id==='img37TrIn'&&e.key==='Enter'&&!e.isComposing){e.preventDefault();const b=$('#img37TrBtn');if(b)b.click()}});
+
+/* ---------- AI／新角色立繪 → 自動補圓形頭像（Neil 2026-11-16：妮克有立繪但小圓框空白） ---------- */
+V372.avBusy=V372.avBusy||{};
+function avSrc372(id){try{const k=tokPorKey372(id);if(k&&A[k]&&!isSil372(A[k]))return A[k]}catch(e){}
+ try{const L=typeof psList==='function'?psList(id):[];const p=L.find(x=>x.def&&A['ps:'+x.id])||L.slice().reverse().find(x=>A['ps:'+x.id]);if(p)return A['ps:'+p.id]}catch(e){}return null}
+async function ensureAv372(id,force){if(!id||id==='me'||!CHARS[id]||V372.avBusy[id])return;if(!force&&!isSil372(A['a_'+id]))return;
+ const src=avSrc372(id);if(!src)return;V372.avBusy[id]=1;
+ try{const im=await loadImg(src);const nw=im.naturalWidth||im.width,nh=im.naturalHeight||im.height;const b=tokBox372('',nw,nh);
+  const c=document.createElement('canvas');c.width=c.height=128;c.getContext('2d').drawImage(im,b[0],b[1],b[2],b[3],0,0,128,128);const a=c.toDataURL('image/jpeg',0.85);
+  A['a_'+id]=a;try{await IDB.set('a_'+id,a)}catch(e){}
+  if(isSil372(A['p_'+id])){A['p_'+id]=src;try{await IDB.set('p_'+id,src)}catch(e){}}
+  try{const rec=(KB.chars||[]).find(r=>r.id===id);if(rec&&!rec.hasPortrait){rec.hasPortrait=true;kbSave()}}catch(e){}
+  try{for(const k in V372.tok)if(k.indexOf(id+'|')===0)delete V372.tok[k]}catch(e){}
+  try{renderAll();if(typeof renderMsgs==='function')renderMsgs()}catch(e){}}
+ catch(e){console.warn('ensureAv372',e)}finally{V372.avBusy[id]=0}}
+if(typeof psAdd==='function'){const _pa372=psAdd;psAdd=async function(id){const r=await _pa372.apply(this,arguments);try{await ensureAv372(id)}catch(e){}return r}}
+if(typeof psDefault==='function'){const _pd372=psDefault;psDefault=function(id){const r=_pd372.apply(this,arguments);try{const rec=(KB.chars||[]).find(x=>x.id===id);if(rec)ensureAv372(id,true)}catch(e){}return r}}
+if(typeof renderAll==='function'){const _ra372av=renderAll;renderAll=function(){const r=_ra372av.apply(this,arguments);try{if(S&&typeof here==='function')here().forEach(c=>{if(isSil372(A['a_'+c])&&avSrc372(c))setTimeout(()=>ensureAv372(c),0)})}catch(e){}return r}}
+
+/* ---------- AI 立繪自動去背（純白／單色背景 → 透明；Neil 2026-11-16） ---------- */
+function autoBgOn372(){try{return localStorage.getItem('moon_autobg372')!=='0'}catch(e){return true}}
+function wantsScene372(p){p=String(p||'').toLowerCase();return /\b(interior|forest|castle|street|tavern|town|scenery|landscape|room)\b[^,]*background|background[^,]*\b(interior|forest|castle|street|tavern|town)\b/.test(p)}
+function bgPrompt372(p){p=String(p||'');if(!autoBgOn372()||wantsScene372(p)||/plain white background/i.test(p))return p;return p.replace(/[,，\s]*$/,'')+', plain white background, no shadow on background'}
+async function stripBg372(url){if(!url||!/^(data:image|blob:|https?:)/.test(url))return url;
+ const im=await loadImg(url);const W=im.naturalWidth||im.width,H=im.naturalHeight||im.height;if(!W||!H)return url;
+ const c=document.createElement('canvas');c.width=W;c.height=H;const g=c.getContext('2d',{willReadFrequently:true});g.drawImage(im,0,0);
+ let d;try{d=g.getImageData(0,0,W,H)}catch(e){return url}const px=d.data;
+ const bord=[];for(let x=0;x<W;x+=2){bord.push(x,(H-1)*W+x)}for(let y=0;y<H;y+=2){bord.push(y*W,y*W+W-1)}
+ let tr=0;const rs=[],gs=[],bs=[];for(const i of bord){const o=i*4;if(px[o+3]<30){tr++;continue}rs.push(px[o]);gs.push(px[o+1]);bs.push(px[o+2])}
+ if(tr>bord.length*.5||rs.length<20)return url;
+ const med=a=>{a.sort((x,y)=>x-y);return a[a.length>>1]};const R=med(rs),G=med(gs),B=med(bs);
+ const lum=(R*3+G*6+B)/10;const tol=lum<50?20:lum>200?34:26;
+ const dist=o=>{const dr=px[o]-R,dg=px[o+1]-G,db=px[o+2]-B;return Math.sqrt(dr*dr+dg*dg+db*db)};
+ let ok=0;for(const i of bord)if(dist(i*4)<=tol)ok++;if(ok<bord.length*.6)return url;
+ const seen=new Uint8Array(W*H);const q=new Int32Array(W*H);let qh=0,qt=0;
+ const push=i=>{if(!seen[i]&&dist(i*4)<=tol){seen[i]=1;q[qt++]=i}};
+ for(let x=0;x<W;x++){push(x);push((H-1)*W+x)}for(let y=0;y<H;y++){push(y*W);push(y*W+W-1)}
+ while(qh<qt){const i=q[qh++];const x=i%W;if(x>0)push(i-1);if(x<W-1)push(i+1);if(i>=W)push(i-W);if(i<W*(H-1))push(i+W)}
+ if(qt<W*H*.08)return url;
+ for(let i=0;i<W*H;i++)if(seen[i])px[i*4+3]=0;
+ for(let i=0;i<W*H;i++){if(seen[i])continue;const x=i%W;const nb=(x>0&&seen[i-1])||(x<W-1&&seen[i+1])||(i>=W&&seen[i-W])||(i<W*(H-1)&&seen[i+W]);
+  if(nb){const k=dist(i*4);if(k<tol*2.2)px[i*4+3]=Math.round(255*Math.max(.25,Math.min(1,(k-tol)/(tol*1.2))))}}
+ g.putImageData(d,0,0);return c.toDataURL('image/png')}
+async function afterGen372(url){if(!autoBgOn372())return url;try{return await stripBg372(url)}catch(e){console.warn('stripBg372',e);return url}}
+if(typeof genByProv371==='function'){const _gb372=genByProv371;genByProv371=async function(prov,id,o,ex,prompt,force){const sc=wantsScene372(prompt);const u=await _gb372.call(this,prov,id,o,ex,bgPrompt372(prompt),force);return sc?u:afterGen372(u)}}
+if(typeof genComfy37==='function'){const _gc372=genComfy37;genComfy37=async function(id,o,ex,prompt,force){const sc=wantsScene372(prompt);const u=await _gc372.call(this,id,o,ex,bgPrompt372(prompt),force);return sc?u:afterGen372(u)}}
+async function stripCurrentPor372(id){const k=tokPorKey372(id);const src=k&&A[k];if(!src||isSil372(src)){toast('這個角色還沒有立繪');return}
+ toast('去背中…');const u=await stripBg372(src);if(u===src){toast('背景不是單一顏色，或已經是透明的，沒辦法自動去背');return}
+ await psAdd(id,u,['去背'],{raw:true});const L=psList(id);psDefault(id,L[L.length-1].id);toast('已去背並另存成新立繪（原圖保留）');try{openSheet(id,'por')}catch(e){}}
+document.addEventListener('change',e=>{if(e.target&&e.target.id==='img37AutoBg'){try{localStorage.setItem('moon_autobg372',e.target.checked?'1':'0')}catch(er){}}});
+document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('#img37StripBtn');if(!b)return;e.preventDefault();stripCurrentPor372(typeof CS_ID!=='undefined'?CS_ID:b.dataset.id).catch(er=>toast('去背失敗：'+(er.message||er)))});
+
+/* ---------- OOC → 角色＋世界＋物品連動（Neil 2026-11-16：OOC 必須讓角色、世界、物品一起動） ---------- */
+function oocWorld372(text){const t=String(text||'');const done=[],facts=[];
+ const verb=/(吃|喝|享用|品嚐|嚐|烤|煮|燉|分食|分享|用掉|使用|喝掉|吃掉|啃|嚼|乾杯)/;if(!verb.test(t))return{done,facts};
+ const core=n=>String(n||'').replace(/^(生|熟|烤|燻|乾|醃|新鮮的?|一塊|一份|一瓶|一杯)+/,'').replace(/[（(].*$/,'');
+ const inv=(S.inv||[]).filter(i=>i&&i.qty>0);const used=[];
+ for(const it of inv){const c=core(it.name);if(!c||c.length<1)continue;if(t.includes(it.name)||(c.length>=2&&t.includes(c))){const share=/(我們|一起|分享|分食|大家|請你|請她|請他)/.test(t)&&it.qty>=2?2:1;
+  if(typeof loseItem==='function'&&loseItem(it.name,share,{silent:true})){used.push(it.name+(share>1?' ×'+share:''))}}}
+ if(used.length){done.push('從背包用掉 '+used.join('、'));facts.push('（系統已真的從背包扣除：'+used.join('、')+'。照這個演出，不要再提背包裡還有。）');
+  if(typeof PR35!=='undefined'&&PR35){PR35.min=(PR35.min||0)+30;done.push('時間經過約 30 分鐘')}
+  try{renderMemSide()}catch(e){}}
+ else{const food=t.match(/(烤|燉|煮)?([\u4e00-\u9fff]{1,4}(肉|酒|湯|麵包|餅|果|茶|蛋|魚))/);if(food)facts.push('（背包裡沒有「'+food[0]+'」。角色不能憑空拿出來；可以在故事裡說明沒有、提議去買或在店裡點，但不要假裝已經在吃。）')}
+ return{done,facts}}
 
 /* v3.3：手機版——側欄改成抽屜；點遮罩或選了項目就收起 */
 (function(){const tb=$('#topbar');if(!tb)return;
