@@ -775,6 +775,12 @@ a.keyget372{color:var(--gold);text-decoration:underline;text-underline-offset:2p
 .img37refth372 img{height:48px;width:auto;max-width:48px;object-fit:cover;border-radius:6px;border:1px solid rgba(230,182,92,.45);background:#1b1420}
 .img37hint372{color:#ffe0a0}
 .img37usedseed{font-family:ui-monospace,monospace}
+/* 私下空間輸入框加大：獨佔一整行、至少三行高、打字時自動長高 */
+#pv35 .pv35row372{flex:1 1 100%;width:100%;min-width:0}
+#pv35 .pv35-in #pv35Inp,#pv35 .pv35row372 #pv35Inp{flex:1 1 auto;min-width:0;min-height:76px;max-height:200px;font-size:15px;line-height:1.5;padding:8px 10px;resize:vertical;overflow-y:auto}
+#pv35 .pv35row372 #pv35Send{min-width:64px}
+#pv35 .pv35-log{bottom:170px}
+@media (max-width:760px){#pv35 .pv35-log{bottom:190px}#pv35 .pv35-stage{bottom:250px}}
 </style></head><body>
 <div id="app">
  <aside id="nav">
@@ -9583,6 +9589,8 @@ function paintMapArtCfg372(){const box=typeof $==='function'?$('#mapArtCfg [data
  box.insertAdjacentHTML('afterbegin',note);
  const wf=$('#maWf');if(wf&&!wf.value)wf.placeholder='留空＝沿用 Qwen 2.1 佈局參考圖（不再使用內建 SD1.5）'}
 {const _os=typeof openSettings==='function'?openSettings:null;if(_os)openSettings=function(tab,focus){const r=_os.apply(this,arguments);try{if(tab==='map')paintMapArtCfg372()}catch(e){}return r}}
+// 私下空間輸入框：打字時自動長高（76px～200px）
+document.addEventListener('input',e=>{const t=e.target;if(t&&t.id==='pv35Inp'){t.style.height='auto';t.style.height=Math.min(200,Math.max(76,t.scrollHeight+2))+'px'}});
 
 /* v3.3：手機版——側欄改成抽屜；點遮罩或選了項目就收起 */
 (function(){const tb=$('#topbar');if(!tb)return;
