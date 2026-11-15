@@ -9414,7 +9414,7 @@ function offerOrIgnore372(q,from){from=from||(S&&S.loc);q=String(q||'');
 {const _gp=typeof goPlace371==='function'?goPlace371:null;if(_gp)goPlace371=async function(place,opt={}){
   const ai=!!(opt.ai||opt.source==='ai'||V372._aiMove);
   const dest=place&&(place.loc||place.id);const from=S&&S.loc;
-  if(place&&place.confirmed){V372._allowTravel=1;try{return await _gp.apply(this,arguments)}finally{V372._allowTravel=0}}
+  if(place&&place.confirmed){V372._allowTravel=1;if(dest)V372._okTo={to:dest,t:Date.now()};try{return await _gp.apply(this,arguments)}finally{V372._allowTravel=0}}
   if(ai&&place&&(place.crosstown||(place.kind==='loc'&&dest&&from&&isCrossTownMove372(from,dest)))){
     const q=place.q||place.name||(LOCS[dest]&&LOCS[dest].name)||String(dest||'');
     const g=offerOrIgnore372(q,from);if(g.ok&&g.place)return _gp.call(this,g.place,opt);
@@ -9445,13 +9445,13 @@ function offerOrIgnore372(q,from){from=from||(S&&S.loc);q=String(q||'');
   try{if(S&&isCrossTownMove372(S.loc,to)){const q=(LOCS[to]&&LOCS[to].name)||to;const g=offerOrIgnore372(q,S.loc);if(g.ok&&g.to)return _sm.call(this,g.to);return}}catch(e){console.warn('storyMove372',e)}
   return _sm.apply(this,arguments)}}
 {const _tr=typeof travel==='function'?travel:null;if(_tr)travel=async function(to){
-  try{if(!V372._allowTravel&&S&&isCrossTownMove372(S.loc,to)){
+  try{if(!V372._allowTravel&&S&&!tripOk372(to)&&isCrossTownMove372(S.loc,to)){
     if(V372._aiMove){const q=(LOCS[to]&&LOCS[to].name)||to;const g=offerOrIgnore372(q,S.loc);if(g.ok&&g.to){to=g.to}else return}
     else{showCrossTown372({kind:'loc',id:to,loc:to,name:LOCS[to]&&LOCS[to].name,from:S.loc,crosstown:true});return}
   }}catch(e){console.warn('travel372',e)}
   return _tr.apply(this,arguments)}}
 {const _gpb=typeof goPublic371==='function'?goPublic371:null;if(_gpb)goPublic371=async function(loc,who){
-  try{if(!V372._allowTravel&&S&&isCrossTownMove372(S.loc,loc)){
+  try{if(!V372._allowTravel&&S&&!tripOk372(loc)&&isCrossTownMove372(S.loc,loc)){
     if(V372._aiMove){const q=(LOCS[loc]&&LOCS[loc].name)||loc;const g=offerOrIgnore372(q,S.loc);if(g.ok&&g.to)loc=g.to;else return{ok:false,why:'ai-crosstown'}}
     else{showCrossTown372({kind:'loc',id:loc,loc,name:LOCS[loc]&&LOCS[loc].name,from:S.loc,crosstown:true});return{ok:false,why:'confirm'}}
   }}catch(e){console.warn('goPublic372',e)}
@@ -9732,6 +9732,9 @@ function oocWorld372(text){const t=String(text||'');const done=[],facts=[];
   try{renderMemSide()}catch(e){}}
  else{const food=t.match(/(烤|燉|煮)?([\u4e00-\u9fff]{1,4}(肉|酒|湯|麵包|餅|果|茶|蛋|魚))/);if(food)facts.push('（背包裡沒有「'+food[0]+'」。角色不能憑空拿出來；可以在故事裡說明沒有、提議去買或在店裡點，但不要假裝已經在吃。）')}
  return{done,facts}}
+
+/* 已確認出發的旅程：路上遇敵／交涉後，抵達時不要再問一次、也不要被擋回原地（Neil 2026-11-16 蘆湖鎮） */
+function tripOk372(to){try{if(typeof ROUTE_ARRIVE!=='undefined'&&ROUTE_ARRIVE&&ROUTE_ARRIVE.to===to)return true;const o=V372._okTo;if(o&&Date.now()-o.t<2*3600e3){if(o.to===to)return true;const n=LOCS[to]&&LOCS[to].name,m=LOCS[o.to]&&LOCS[o.to].name;if(n&&m&&(n===m||n.indexOf(m)>=0||m.indexOf(n)>=0))return true;try{if(sameTown372(to,o.to))return true}catch(e){}}}catch(e){}return false}
 
 /* v3.3：手機版——側欄改成抽屜；點遮罩或選了項目就收起 */
 (function(){const tb=$('#topbar');if(!tb)return;
