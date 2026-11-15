@@ -672,6 +672,31 @@ body.vn37min #vn37 .vn37por,body.vn37min #vn37 .vn37others,body.vn37min #vn37 .v
 #vn37rp .rptxt p,#vn37rp .rptxt div{margin:0}
 #vn37rp .rphint{position:absolute;right:16px;bottom:6px;font-size:12px;opacity:.6}
 @media (max-width:820px){#vn37rp .rpbox{font-size:15px;bottom:12px}#vn37rp .rppor{height:70vh}}
+
+/* ===== v3.7.1 OOC 指令模式、選單、確認卡 ===== */
+#inputbar[data-im="ooc"]{background:rgba(90,80,40,.28)}
+#inputbar[data-im="ooc"] #inp{border:2px solid #d4b45a;background:rgba(80,70,30,.35);box-shadow:0 0 0 3px rgba(212,180,90,.18)}
+#inputbar[data-im="ooc"] .addr::before{content:"OOC 指令模式";display:block;font-size:11px;color:#e8d48a;letter-spacing:.04em;margin-bottom:2px}
+#pv35.ooc-on .pv35-in{outline:2px solid #d4b45a;border-radius:12px;box-shadow:0 0 0 3px rgba(212,180,90,.25)}
+#pv35.ooc-on #pv35Inp{border-color:#d4b45a;background:rgba(80,70,30,.45)}
+#pv35Ooc.on{background:#d4b45a;color:#1a1408;border-color:#e8d48a;font-weight:700;box-shadow:0 0 0 2px rgba(212,180,90,.35)}
+#pv35.ooc-on .pv35-in::before{content:"OOC 指令模式";position:absolute;top:-18px;left:8px;font-size:11px;color:#e8d48a;background:rgba(20,16,10,.85);padding:1px 8px;border-radius:8px;z-index:4}
+.oocMenu371{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:6px 8px;background:rgba(30,26,18,.92);border:1px solid rgba(212,180,90,.35);border-radius:10px;margin:0 0 6px;font-size:13px;color:#eee}
+.oocMenu371 select,.oocMenu371 input{background:#1a1610;color:#eee;border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:4px 6px;max-width:160px}
+.oocMenu371 .om-lab{color:#e8d48a;font-size:12px}
+.oocMenu371.inline{margin:0;position:relative}
+#inputbar .oocMenu371{margin:0 20px 0;width:auto}
+.oocAsk371,.oocPick371,.oocOff371{margin:8px 0;padding:10px 12px;background:rgba(150,150,160,.12);border:1px dashed rgba(180,180,190,.45);border-radius:10px;color:#d6d6de;font-size:13.5px}
+.oocAsk371 .row,.oocPick371 .row,.oocOff371 .row{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.oocOff371 button,.oocAsk371 button,.oocPick371 button{cursor:pointer}
+#pv35Log .oocAsk371,#pv35Log .oocPick371,#pv35Log .oocOff371{background:rgba(15,12,22,.8)}
+
+.img37comfy{margin:8px 0;padding:8px 10px;border:1px solid rgba(200,180,120,.35);border-radius:8px;background:rgba(40,36,28,.45)}
+.img37comfy textarea{width:100%;box-sizing:border-box}
+.img37comfy .setgrid{margin-top:6px}
+details.img37err{margin-top:6px;font-size:12px;color:#c9c0b4}
+details.img37err summary{cursor:pointer}
+details.img37err pre{white-space:pre-wrap;word-break:break-all;max-height:8em;overflow:auto;margin:.4em 0 0;font-size:11px}
 </style></head><body>
 <div id="app">
  <aside id="nav">
@@ -4180,7 +4205,7 @@ document.addEventListener('change',e=>{if(e.target.id==='cfSpeed'){CFG.timeSpeed
 /* =====================================================================
    v3.2：重新開始、清除所有資料、版本隔離
    ===================================================================== */
-const BUILD_VERSION='3.7.0',DATA_VERSION=32;
+const BUILD_VERSION='3.7.1',DATA_VERSION=32;
 // 記住冒險的起點，重新開始時從這裡開場
 {const _na=newAdventure;newAdventure=function(f){_na(f);if(S){S.meta.start={loc:S.loc,day:S.day,slot:S.slot};saveSlot()}}}
 function advStart(){const s=S.meta&&S.meta.start;return s&&LOCS[s.loc]?s:{loc:'tavern',day:1,slot:3}}
@@ -7655,7 +7680,7 @@ document.addEventListener('change',e=>{const t=e.target;if(!t)return;
 /* =====================================================================
    v3.7.0 第 7 項：AI 生成立繪（角色卡 →「立繪」頁）
    ・獨立的繪圖 API 設定（存在這個瀏覽器 lunaria_img37，不寫進存檔、角色卡或匯出檔）
-   ・接口：GPT（預設）／Google Gemini（低消耗模型）／ComfyUI（只在啟用時出現）／交給美術助手（只匯出繪圖需求文字，不呼叫任何服務）
+   ・接口：GPT（預設）／Google Gemini（低消耗模型）／ComfyUI（本機，免費；一律顯示）／交給美術助手（只匯出繪圖需求文字，不呼叫任何服務）
    ・提示詞預先自動填好（真正可編輯的文字），可修改後再生成，一鍵還原自動提示詞
    ・每按一次只生成 1 張；可指定服裝（預設＝目前預覽的服裝）與表情；新圖另存成自訂立繪，不覆蓋原圖
    ・AI 新建的角色不會自動畫，只給按鈕；保留原本的「上傳立繪」
@@ -7663,7 +7688,7 @@ document.addEventListener('change',e=>{const t=e.target;if(!t)return;
 const IMG37_KEY='lunaria_img37';
 function img37(){if(!V37.img){let c={};try{c=JSON.parse(localStorage.getItem(IMG37_KEY)||'{}')}catch(e){}V37.img=Object.assign({prov:'gpt',gptKey:'',gptModel:'gpt-image-1',gptBase:'https://api.openai.com/v1',gptSize:'1024x1536',gemKey:'',gemModel:'gemini-2.5-flash-image'},c)}return V37.img}
 function img37Save(){try{localStorage.setItem(IMG37_KEY,JSON.stringify(V37.img))}catch(e){}}
-const IMG37_PROV={gpt:'GPT 圖像（預設）',gemini:'Google Gemini（低消耗）',comfy:'ComfyUI（本機）',brief:'交給美術助手（匯出繪圖需求）'};
+const IMG37_PROV={gpt:'GPT 圖像（預設）',gemini:'Google Gemini（低消耗）',comfy:'ComfyUI（本機，免費）',brief:'交給美術助手（匯出繪圖需求）'};
 const EXPR37=['平靜','開心','害羞','生氣','悲傷','驚訝'];
 const EXPR37_EN={平靜:'calm neutral expression',開心:'happy warm smile',害羞:'shy blushing expression',生氣:'annoyed angry expression',悲傷:'sad teary expression',驚訝:'surprised wide-eyed expression'};
 V37.prevOutfit={};V37.imgPrompt={};V37.imgSel={};
@@ -7729,10 +7754,10 @@ document.addEventListener('click',async e=>{const b=e.target.closest&&e.target.c
  if(a==='savecfg'){const c=img37();c.gptKey=$('#img37GK').value.trim();c.gptModel=$('#img37GM').value.trim()||'gpt-image-1';c.gemKey=$('#img37MK').value.trim();c.gemModel=stripModelPrefix37($('#img37MM').value.trim()||'gemini-2.5-flash-image');img37Save();toast('已儲存繪圖設定（只存在這個瀏覽器）');return}
  if(a==='brief'){const txt=briefText37(id,o,ex,pr);try{await navigator.clipboard.writeText(txt)}catch(er){}const bl=new Blob([txt],{type:'text/plain;charset=utf-8'});const u=URL.createObjectURL(bl);const an=document.createElement('a');an.href=u;an.download=`繪圖需求_${charInfo37(id).name}_${OUTFITS[o]||o}_${ex}.txt`;document.body.appendChild(an);an.click();an.remove();setTimeout(()=>URL.revokeObjectURL(u),2000);
   if(R)R.innerHTML=`<div class="note">📄 已下載繪圖需求文字檔，也複製到剪貼簿了。交給美術助手畫好後，用上面的「⬆ 上傳立繪」匯入即可。</div><pre class="img37brief">${esc(txt)}</pre>`;return}
- if(a==='gen'||a==='again'){if(!pr)return toast('提示詞是空的');if(V37.imgBusy)return toast('上一張還在生成中');const prov=img37().prov==='comfy'&&!c37On()?'gpt':img37().prov;V37.imgBusy=true;if(R)R.innerHTML=`<div class="note">🎨 生成中…（${IMG37_PROV[prov]}，通常 20 秒～2 分鐘）</div>`;
-  try{const url=prov==='gemini'?await genGemini37(pr):prov==='comfy'?await genComfy37(id,o,ex,pr,a==='again'):await genGPT37(pr);V37.imgLast={id,url,o,ex};
+ if(a==='gen'||a==='again'){if(!pr)return toast('提示詞是空的');if(V37.imgBusy)return toast('上一張還在生成中');const prov=img37().prov||'gpt';V37.imgBusy=true;if(R)R.innerHTML=`<div class="note">🎨 生成中…（${IMG37_PROV[prov]}，通常 20 秒～2 分鐘）</div>`;
+  try{const url=typeof genByProv371==='function'?await genByProv371(prov,id,o,ex,pr,a==='again'):(prov==='gemini'?await genGemini37(pr):prov==='comfy'?await genComfy37(id,o,ex,pr,a==='again'):await genGPT37(pr));V37.imgLast={id,url,o,ex};
    const R2=$('#img37R');if(R2)R2.innerHTML=`<div class="img37res"><img src="${url}" alt=""><div><div class="note" style="margin-top:0">${esc(OUTFITS[o])}・${esc(ex)}。滿意的話加入立繪（另存成新的一張，原本的立繪不會被覆蓋）。</div><div class="row"><button class="btn" data-img37="keep">✓ 加入立繪</button><button class="btn g" data-img37="again">↻ 再生成 1 張</button><button class="btn g" data-img37="drop">捨棄</button></div></div></div>`}
-  catch(er){const R2=$('#img37R');if(R2)R2.innerHTML=`<div class="note" style="color:#ff9a9a">❌ ${esc(er.message||er)}</div>`}finally{V37.imgBusy=false}return}
+  catch(er){const R2=$('#img37R');if(R2)R2.innerHTML=(er&&er.html)?er.html:`<div class="note" style="color:#ff9a9a">❌ ${esc(er.message||er)}</div>`}finally{V37.imgBusy=false}return}
  if(a==='keep'){const L2=V37.imgLast;if(!L2||L2.id!==id)return;try{await psAdd(id,L2.url,['outfit:'+L2.o,L2.ex]);V37.imgLast=null;toast('已加入立繪（另存新圖）');openSheet(id,'por')}catch(er){toast('加入失敗：'+(er.message||er))}return}
  if(a==='drop'){V37.imgLast=null;if(R)R.innerHTML='';return}},true);
 // 角色清單：沒有立繪的角色顯示「🎨 畫立繪」按鈕（不會自動畫）
@@ -7834,6 +7859,496 @@ function vnRpBtn37(g,m){if(!g||!m||m.role!=='ai'||!(m.segs||[]).length||g.queryS
 {const _pa=playAI;playAI=async function(raw,meta){const box=msgsEl();const n=box?box.children.length:0;const r=await _pa.apply(this,arguments);try{const m=lastAI();if(m&&!m.vn37)m.vn37={scene:sceneKey,loc:S.loc};const g=box&&box.children[n];if(g&&g.classList.contains('grp'))vnRpBtn37(g,m)}catch(e){}try{renderVN37()}catch(e){}return r}}
 document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('.vn37rpb');if(!b)return;e.preventDefault();e.stopPropagation();const g=b.closest('.grp');const m=g&&g._m37;if(m)vnReplay37(m)},true);
 setTimeout(()=>{try{renderVN37()}catch(e){}},400);
+
+/* =====================================================================
+   v3.7.1：OOC 真的執行動作、指令選單、意圖分類、對話換裝／移動同步、餘額錯誤、立繪 ComfyUI／免費接口、畫圖錯誤中文
+   只新增、不刪改原有功能
+   ===================================================================== */
+const V371={pending:null,lastActs:[],calls:0};
+const EMO_EN371={開心:'smile',害羞:'shy',悲傷:'sad',難過:'sad',生氣:'angry',驚訝:'surprised',平靜:'neutral',smile:'smile',shy:'shy',sad:'sad',angry:'angry',surprised:'surprised',neutral:'neutral',happy:'smile',calm:'neutral'};
+const SLOT_OPT371=[['清晨',0],['上午',1],['中午',2],['黃昏',3],['晚上',4]];
+function isPriv371(){return typeof PR35!=='undefined'&&!!PR35}
+function note371(t,priv){if(priv&&isPriv371())PR35.hist.push({role:'sys',text:t,forAI:true});else try{pushMsg({role:'sys',text:t})}catch(e){}}
+function wardrobe371(id){return Object.keys(OUTFITS||{}).map(k=>{const art=!!(A['of:'+id+'/'+k]||A['of:'+id+'/bold/'+k]||(id==='me'&&(A['of:me/'+k]||A['of:me/default'])));return{k,name:OUTFITS[k],art}})}
+function outfitList371(id){const cur=typeof outfitOf==='function'?outfitOf(id):'daily';return wardrobe371(id).map(o=>`${o.name}${o.k===cur?'（目前）':''}`).join('、')}
+function allowedOutfits371(id){return wardrobe371(id).filter(o=>o.k==='me'||id==='me'||(typeof outfitOK==='function'?outfitOK(id,o.k).ok:true)||isPriv371()).map(o=>o.k)}
+function parseOutfitName371(s){s=String(s||'').trim();if(!s)return null;if(typeof OUTFIT_EN35==='object'&&OUTFIT_EN35[s.toLowerCase()])return OUTFIT_EN35[s.toLowerCase()];return typeof outfitFrom==='function'?outfitFrom(s):null}
+function whoFromText371(t,opt={}){t=String(t||'');const pool=opt.pool||Object.keys(CHARS||{});const hits=[];for(const c of pool){const ks=typeof charKeys==='function'?charKeys(c):[nm(c),c];const nt=typeof normName==='function'?normName(t):t;if(ks.some(k=>k&&k.length>=2&&(t.includes(k)||nt.includes(typeof normName==='function'?normName(k):k))))hits.push(c)}
+ if(hits.length===1)return hits[0];if(hits.length>1)return hits[0];
+ if(/(?:我自己|讓我|我要換|換成我)/.test(t)||opt.allowMe&&/^(我|自己)/.test(t))return'me';
+ if(isPriv371()&&PR35.who&&PR35.who.length===1)return PR35.who[0];
+ if(S&&S.talk&&(!opt.here||here().includes(S.talk)))return S.talk;
+ if(opt.here&&here().length===1)return here()[0];return null}
+function setOutfit371(id,o,opt={}){if(!OUTFITS[o])return{ok:false,why:'missing'};if(id!=='me'&&!S.chars[id])return{ok:false,why:'nochar'};
+ const NM=id==='me'?'你':nm(id);if(outfitOf(id)===o)return{ok:true,same:true,msg:`${NM}已經穿著${OUTFITS[o]}`};
+ const force=!!(opt.force||(isPriv371()&&opt.asked)||opt.asked&&isPriv371());
+ if(!force){const ok=outfitOK(id,o);if(!ok.ok)return{ok:false,why:ok.why||'ctx',msg:ok.t,refuse:true}}
+ const notes=[];const _t=typeof toast==='function'?toast:null;if(_t)toast=()=>{};
+ let r;try{if(force){const _p=pushMsg;const buf=[];if(isPriv371())pushMsg=function(m){buf.push(m)};try{r=changeOutfit(id,o,{force:true});if(isPriv371())buf.forEach(m=>PR35.hist.push({role:'sys',text:m.text,forAI:true}))}finally{pushMsg=_p}}
+ else r=applyAction35({k:'outfit',who:id,v:o},{note:t=>notes.push(t)})}finally{if(_t)toast=_t}
+ notes.forEach(t=>note371(t,isPriv371()));try{refreshPor35(id)}catch(e){}try{if(isPriv371())renderPriv35();else renderAll()}catch(e){}try{autosave()}catch(e){}
+ return r&&r.ok!==false?{ok:true,msg:`讓${NM}換上了${OUTFITS[o]}`}:{ok:false,why:(r&&r.why)||'fail',msg:(r&&r.msg)||notes.join('')}}
+
+/* ---------- 地點／私下房間解析 ---------- */
+const ROOM_ALIAS371={inn_room:/客房|上房|廂房|樓上|樓上房間|旅店客房|客棧上房|客間|房間/,tavern_private:/包廂|雅間|雅座|酒吧包廂/,guild_parlor:/會客室|花廳|靜室|簡報室/,shop_backroom:/後室|後堂|後間|倉庫/,temple_chapel:/禮拜堂|禪房|拜殿|偏殿|靜室/,manor_study:/書房|書齋|書院|艦長室/,camp_tent:/帳篷|帳幕|結廬/,garden_pavilion:/涼亭|水榭|亭台|茶亭/,dungeon_rest:/安全角落|歇腳處|石室/};
+function placesAt371(loc){loc=loc||(isPriv371()?PR35.loc:S.loc);const rooms=(typeof roomsAt35==='function'?roomsAt35(loc):[]).map(r=>({kind:'priv',id:r.id,type:r.type,name:r.name,loc,label:r.name+(LOCS[loc]?'（'+LOCS[loc].name+'）':'')}));
+ const pubs=Object.keys(LOCS||{}).filter(k=>LOCS[k]&&LOCS[k].name).map(k=>({kind:'loc',id:k,loc:k,name:LOCS[k].name,label:LOCS[k].name}));
+ return{rooms,pubs}}
+function scorePlace371(q,p){q=String(q||'');const n=p.name||'',id=p.id||p.type||p.loc||'';let s=0;
+ if(!q)return 0;if(q===n||q===id)return 100;if(n&&q.includes(n))s=80;else if(n&&n.includes(q)&&q.length>=2)s=70;
+ const al=ROOM_ALIAS371[p.type||p.id];if(al&&al.test(q))s=Math.max(s,85);if(/樓上/.test(q)&&(p.type==='inn_room'||/客房|上房/.test(n)))s=Math.max(s,92);
+ if(p.kind==='loc'){try{if(resolveLoc(q)===p.loc)s=Math.max(s,80)}catch(e){}}
+ return s}
+function resolvePlace371(q,opt={}){q=String(q||'').trim().replace(/^(去|到|前往|帶我去|帶我們去|帶妳去|帶你去|帶他們去)/,'');if(!q)return null;
+ const loc=opt.loc||(isPriv371()?PR35.loc:S.loc)||S.loc;const P=placesAt371(loc);
+ // 先比對「目前地點的私下空間」（樓上客房 ≠ 通鋪 dorm）
+ const roomHits=P.rooms.map(p=>({p,s:scorePlace371(q,p)})).filter(x=>x.s>=60).sort((a,b)=>b.s-a.s);
+ if(roomHits.length&&(roomHits.length===1||roomHits[0].s>roomHits[1].s))return roomHits[0].p;
+ // 其他地點的公開場所
+ const pubHits=P.pubs.map(p=>({p,s:scorePlace371(q,p)})).filter(x=>x.s>=70).sort((a,b)=>b.s-a.s);
+ let locId=null;try{locId=resolveLoc(q)||resolveLocIn(q)}catch(e){}
+ // 「客房／樓上」在酒館時不要誤判成通鋪
+ if(locId==='dorm'&&(/客房|樓上/.test(q))&&P.rooms.some(r=>r.type==='inn_room'))return P.rooms.find(r=>r.type==='inn_room');
+ if(locId&&(!roomHits.length||(pubHits[0]&&pubHits[0].s>=80))){const p=P.pubs.find(x=>x.loc===locId);if(p)return p}
+ if(roomHits.length)return roomHits[0].p;
+ if(pubHits.length&&pubHits[0].s>=70)return pubHits[0].p;
+ const offers=[...roomHits,...pubHits].sort((a,b)=>b.s-a.s).slice(0,4).map(x=>x.p);
+ if(!offers.length){offers.push(...P.rooms.slice(0,3));const near=P.pubs.filter(p=>p.loc===loc||['tavern','dorm','guild','market','smithy'].includes(p.loc)).slice(0,4);offers.push(...near)}
+ return{kind:'missing',q,offers:offers.filter((x,i,a)=>a.findIndex(y=>y.kind+y.id===x.kind+x.id)===i).slice(0,5)}}
+function followWho371(extra){const set=new Set();(isPriv371()?PR35.who:[]).forEach(c=>set.add(c));try{partyList().forEach(c=>set.add(c))}catch(e){}
+ (extra||[]).forEach(c=>{if(c&&c!=='me'&&CHARS[c])set.add(c)});return[...set]}
+function switchPriv371(roomId,who){const loc=PR35?PR35.loc:S.loc;const r=(roomsAt35(loc)||[]).find(x=>x.id===roomId||x.type===roomId||x.name===roomId);if(!r)return{ok:false,why:'missing'};
+ if(PR35&&PR35.room===r.id)return{ok:true,same:true,msg:`已經在${r.name}`};
+ if(who&&who.length){for(const c of who){if(S.chars[c]&&S.chars[c].loc!==loc)S.chars[c].loc=loc}}
+ if(!PR35){try{enterPriv35(r.id,who&&who.length?who:privPresent35().slice(0,1))}catch(e){return{ok:false,why:'enter'}}return{ok:!!PR35&&PR35.room===r.id,msg:`進入了${r.name}`}}
+ PR35.type=r.type;PR35.name=r.name;PR35.room=r.id;if(who&&who.length)PR35.who=[...new Set((PR35.who||[]).concat(who))];
+ const msg=`【🚪 你們來到了${r.name}。】`;PR35.hist.push({role:'narr',text:`你們走進了${r.name}。`});PR35.hist.push({role:'sys',text:msg,forAI:true});
+ try{renderPriv35();autosave()}catch(e){}return{ok:true,msg:`來到了${r.name}`}}
+async function goPublic371(loc,who){if(!LOCS[loc])return{ok:false,why:'missing'};const from=S.loc;const fol=followWho371(who);
+ if(isPriv371()){try{await privLeave35()}catch(e){}}
+ if(S.loc===loc){fol.forEach(c=>{if(S.chars[c]){S.chars[c].loc=loc;S.chars[c].stay={loc,until:tsNow()+3}}});try{renderAll();autosave()}catch(e){}return{ok:true,same:true,msg:`已經在${LOCS[loc].name}`}}
+ const mins=typeof travelMinutes==='function'?travelMinutes(from,loc):15;
+ try{BUSY=false;S.loc=loc;S.talk=fol[0]||S.talk;S.active=S.talk;S.sceneImg=null;fol.forEach(c=>{if(S.chars[c]){S.chars[c].loc=loc;S.chars[c].stay={loc,until:tsNow()+3}}});
+  if(typeof passTime==='function')await passTime(mins,false);try{syncParty()}catch(e){}
+  const g=fol.find(c=>!inParty(c))||fol[0];if(g&&typeof bringAlong37==='function'){try{const x=S.chars[g];if(x)x.loc=loc}catch(e){}}
+  pushMsg({role:'sys',text:`【🗺️ 你們來到了${LOCS[loc].name}。${fol.length?fol.map(nm).join('、')+'一起同行。':''}】`});
+  renderAll();autosave()}catch(e){console.warn('goPublic371',e);return{ok:false,why:'travel'}}
+ return{ok:true,msg:`來到了${LOCS[loc].name}`}}
+async function goPlace371(place,opt={}){if(!place)return{ok:false,why:'missing'};const who=followWho371(opt.who);
+ if(place.kind==='missing'){showPlaceOffers371(place);return{ok:false,why:'missing',offers:place.offers,msg:`沒有「${place.q}」這個地方`}}
+ if(place.kind==='priv'){if(place.loc&&place.loc!==(isPriv371()?PR35.loc:S.loc)){const r=await goPublic371(place.loc,who);if(!r.ok)return r}
+  return switchPriv371(place.id||place.type,who)}
+ if(place.kind==='loc')return goPublic371(place.loc||place.id,who);
+ return{ok:false,why:'missing'}}
+function showPlaceOffers371(miss){const offers=miss.offers||[];const q=miss.q||'那裡';const html=`沒有「${esc(q)}」這個地方。要去最接近的哪裡？`;
+ const btns=offers.map(p=>`<button class="btn sm" data-go371="${p.kind}:${p.id}">${esc(p.label||p.name)}</button>`).join('')||'<span class="note">目前沒有可去的地點。</span>';
+ const t=`【🗺️ ${html}】`;if(isPriv371()){PR35.hist.push({role:'sys',text:t,offers371:offers,forAI:true});renderPriv35()}else{pushMsg({role:'sys',text:t,offers371:offers});try{renderMsgs()}catch(e){}}
+ V371.offers=offers;const box=isPriv371()?$('#pv35Log'):$('#msgs');if(box){const d=document.createElement('div');d.className='oocOff371';d.innerHTML=`<div>${esc(html)}</div><div class="row">${btns}</div>`;(isPriv371()?box:box).appendChild(d);if(isPriv371())box.scrollTop=box.scrollHeight}}
+document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-go371]');if(!b)return;e.preventDefault();e.stopPropagation();const[kind,id]=String(b.dataset.go371).split(':');const place=kind==='priv'?{kind:'priv',id,type:id,loc:isPriv371()?PR35.loc:S.loc,name:(roomsAt35()||[]).find(r=>r.id===id)?.name||id}:{kind:'loc',id,loc:id,name:LOCS[id]?LOCS[id].name:id};
+ goPlace371(place).then(r=>{toast(r.ok?r.msg:(r.msg||'沒辦法過去'));try{if(isPriv371())renderPriv35();else renderAll()}catch(e){}})},true);
+
+/* ---------- 執行動作（OOC／選單／分類共用） ---------- */
+function execAction371(a,opt={}){const done=[],fail=[];let min=0,pick=null;const force=opt.force!==false;
+ const target=a.target&&a.target!=='me'?resolveChar(a.target)||(a.target==='me'?'me':null):(a.target==='me'?'me':null);
+ const P=a.params||{};
+ const act=a.action;
+ if(act==='outfit'){const id=target||whoFromText371(a.raw||'',{here:true,allowMe:false});if(!id){fail.push('請先指定要換裝的角色（例如：請莉娜換成戰鬥裝）');return{done,fail,min,pick}}
+  const o=P.outfit?parseOutfitName371(P.outfit)||P.outfit:null;
+  if(!o){pick={type:'outfit',who:id};fail.push(`${id==='me'?'你':nm(id)}要換哪一套？可選：${outfitList371(id)}`);return{done,fail,min,pick}}
+  if(!OUTFITS[o]){fail.push(`沒有「${P.outfit}」這套衣服。${id==='me'?'你':nm(id)}可選：${outfitList371(id)}`);return{done,fail,min,pick}}
+  const r=setOutfit371(id,o,{force,asked:opt.asked});if(r.ok)done.push(r.same?r.msg:r.msg);else fail.push(r.msg||r.why||'換裝失敗')}
+ else if(act==='emotion'){const id=target;if(!id||id==='me'){fail.push('請指定要換表情的角色');return{done,fail,min,pick}}
+  const e=EMO_EN371[P.emotion||P.v||'']||(typeof emo35==='function'?emo35(P.emotion||''):null)||'neutral';
+  applyAction35({k:'emotion',who:id,v:e},{note:t=>note371(t,isPriv371())});done.push(`把${nm(id)}的表情改成${(typeof EMO_ZH35==='object'&&EMO_ZH35[e])||P.emotion||e}`)}
+ else if(act==='summon'){const id=target;if(!id||id==='me'){fail.push('請指定要過來的角色');return{done,fail,min,pick}}
+  const loc=isPriv371()?PR35.loc:S.loc;S.chars[id].loc=loc;S.chars[id].stay={loc,until:tsNow()+6};if(isPriv371()&&!PR35.who.includes(id)){PR35.who.push(id);try{renderPriv35()}catch(e){}}
+  try{renderAll()}catch(e){}done.push(`請「${nm(id)}」來到${LOCS[loc]?LOCS[loc].name:'這裡'}`)}
+ else if(act==='move_char'){const id=target;const pl=P.place?resolvePlace371(P.place):null;if(!id){fail.push('請指定角色');return{done,fail,min,pick}}
+  if(!pl||pl.kind==='missing'){fail.push(pl&&pl.kind==='missing'?`找不到「${P.place}」`: '請指定目的地');return{done,fail,min,pick}}
+  const dest=pl.kind==='loc'?pl.loc:(pl.loc||S.loc);S.chars[id].loc=dest;S.chars[id].stay={loc:dest,until:tsNow()+4};if(isPriv371()&&PR35.who.includes(id)&&dest!==PR35.loc)PR35.who=PR35.who.filter(x=>x!==id);
+  try{renderAll();if(isPriv371())renderPriv35()}catch(e){}done.push(`請「${nm(id)}」前往${pl.name||LOCS[dest].name}`)}
+ else if(act==='party_join'){const id=target;if(!id){fail.push('請指定要同行的角色');return{done,fail,min,pick}}
+  if(inParty(id)){done.push(`${nm(id)}已經在同行隊伍裡`);return{done,fail,min,pick}}
+  if(S.chars[id].loc!==S.loc){S.chars[id].loc=S.loc;S.chars[id].stay={loc:S.loc,until:tsNow()+6}}
+  partyJoin(id,`【${nm(id)}加入同行。】`);done.push(`請「${nm(id)}」加入同行`)}
+ else if(act==='party_leave'){const id=target;if(!id){fail.push('請指定要離隊的角色');return{done,fail,min,pick}}
+  if(!inParty(id)){fail.push(`${nm(id)}不在同行隊伍裡`);return{done,fail,min,pick}}
+  partyLeave(id,{line:`【${nm(id)}離開了隊伍。】`});done.push(`請「${nm(id)}」離隊`)}
+ else if(act==='give_item'){const id=target;const name=String(P.item||'').trim();if(!id||!name){fail.push('請指定角色與物品');return{done,fail,min,pick}}
+  if(!hasItem(name)){fail.push(`背包裡沒有「${name}」。`+(S.inv||[]).filter(i=>i.qty>0).length?`目前有：${(S.inv||[]).filter(i=>i.qty>0).slice(0,8).map(i=>i.name).join('、')}`:'背包是空的');return{done,fail,min,pick}}
+  giveItem(name,id,parseInt(P.qty)||1);done.push(`把「${name}」給了${nm(id)}`)}
+ else if(act==='take_item'||act==='remove_item'){const id=target;const name=String(P.item||'').trim();if(!id||!name){fail.push('請指定角色與物品');return{done,fail,min,pick}}
+  const its=(S.chars[id]&&S.chars[id].items)||{};const n=Object.keys(its).find(x=>x===name||x.includes(name)||name.includes(x));
+  if(!n){fail.push(`${nm(id)}身上沒有「${name}」`);return{done,fail,min,pick}}
+  npcAdd(id,n,-(parseInt(P.qty)||1));gainItem(n,1,{from:nm(id),silent:true});done.push(`從${nm(id)}收回了「${n}」`)}
+ else if(act==='affection'){const id=target;if(!id||!S.chars[id]){fail.push('請指定角色');return{done,fail,min,pick}}
+  const cur=S.chars[id].aff||0;let n=cur;if(P.set!=null&&P.set!=='')n=+P.set;else if(P.delta!=null)n=cur+(+P.delta);n=Math.max(0,Math.min(100,n));S.chars[id].aff=n;try{renderAll()}catch(e){}done.push(`把${nm(id)}的好感度設為 ${n}`)}
+ else if(act==='travel'||act==='move'||act==='scene'){const pl=P.place?resolvePlace371(P.place):null;if(!pl){fail.push('請指定要去的地方');return{done,fail,min,pick}}
+  V371._go=goPlace371(pl,{who:target&&target!=='me'?[target]:[]});/* settled in oocRun */}
+ else if(act==='time'){/* handled by original oocApply min */}
+ else if(act==='create_char'||act==='set_role'){/* handled by v3.7 oocApply */}
+ else if(act&&act!=='none'){fail.push(`還沒支援「${act}」這個動作`)}
+ try{autosave()}catch(e){}
+ return{done,fail,min,pick,go:V371._go}}
+
+/* ---------- OOC 關鍵字解析 ---------- */
+function looksLikeAction371(t){t=String(t||'');
+ if(/說話短|回覆短|不要提到|之後多|記得.*口吻|描寫天氣|不要寫太|風格|規則是|用繁體/.test(t)&&!/(換|衣服|服裝|過來|同行|離隊|好感|睡衣|場景|客房|公會|道具|物品)/.test(t))return false;
+ if((/換/.test(t)||/改穿|改成/.test(t))&&/(衣服|服裝|裝束|行頭|衣著|睡衣)/.test(t))return true;
+ if(/行頭|裝束/.test(t))return true;
+ return/(換衣服|換裝|更換衣服|服裝|睡衣|戰鬥裝|禮服|便服|日常服|旅行裝|換成|換上|換回|請.{1,8}衣服|表情|過來|來到這裡|叫.{0,8}來|帶我去|帶我們去|帶你去|帶路|前往|換到|換場景|去樓上|去客房|去公會|同行|入隊|加入隊伍|離隊|離開隊伍|給.{0,8}(一|兩|這|那)?[個把瓶份顆]|送給|交給|收回|拿走|好感|好感度|建立角色|新增角色|創建角色|跳到|快轉|時間設|時間改|場景)/.test(t)}
+function parseOocActions371(t){const acts=[];t=String(t||'').trim();
+ // 換裝
+ if(/(換|穿|衣服|服裝|換裝|睡衣|戰鬥裝|禮服|便服|日常服|旅行裝|行裝)/.test(t)&&!/(換到|換去|換場景)/.test(t)||/(?:請|讓|叫).{0,8}衣服/.test(t)){
+  const who=whoFromText371(t,{allowMe:true})||(/(我|自己|玩家)/.test(t)?'me':null);
+  const named=(t.match(/(?:換成|換上|換回|改穿|穿上|更換成?)\s*[「『]?([^」』，。、]{1,16})/)||[])[1];
+  const of=named?parseOutfitName371(named):parseOutfitName371(t);
+  if(who||of||named||/(換衣服|換裝|更換衣服|請.{0,8}衣服|換.{0,10}(衣服|服裝|裝束|行頭))/.test(t))acts.push({action:'outfit',target:who,params:{outfit:of||named||''},raw:t})}
+ // 表情
+ if(/表情|露出|露出.{0,4}(笑|害羞|生氣|悲傷|難過|驚訝)/.test(t)&&!acts.some(a=>a.action==='outfit'&&/換/.test(t))){const who=whoFromText371(t);const em=(t.match(/(開心|害羞|悲傷|難過|生氣|驚訝|平靜|笑)/)||[])[1];if(who&&em)acts.push({action:'emotion',target:who,params:{emotion:em}})}
+ // 叫過來
+ if(/(過來|來到這裡|來這裡|到我這|叫.{0,8}來|請.{0,8}入場|來到場)/.test(t)&&!/帶我去|帶我們去|前往/.test(t)){const who=whoFromText371(t);if(who&&who!=='me')acts.push({action:'summon',target:who,params:{}})}
+ // 同行／離隊
+ if(/(加入)?同行|入隊|加入隊伍|一起走|跟著我/.test(t)&&!/離隊|離開隊伍/.test(t)){const who=whoFromText371(t);if(who&&who!=='me')acts.push({action:'party_join',target:who,params:{}})}
+ if(/離隊|離開隊伍|請.{0,8}離隊|不要跟著/.test(t)){const who=whoFromText371(t);if(who&&who!=='me')acts.push({action:'party_leave',target:who,params:{}})}
+ // 物品
+ let gm=t.match(/(?:把|將)?\s*[「『]?(.{1,12}?)[」』]?\s*(?:給|送給|交給)\s*(.{1,10})/);
+ if(!gm)gm=t.match(/(?:給|送給|交給)\s*(.{1,10}?)\s*[「『]?(.{1,12}?)[」』]?\s*$/);
+ if(gm){const a=gm[1],b=gm[2];const c1=resolveChar(a),c2=resolveChar(b);if(c2&&!c1)acts.push({action:'give_item',target:c2,params:{item:a}});else if(c1&&!c2)acts.push({action:'give_item',target:c1,params:{item:b}})}
+ const tm=t.match(/(?:收回|拿走|取回|移除)\s*(.{0,8}?)(?:的)?[「『]?(.{1,12})[」』]?/);if(tm){const who=resolveChar(tm[1])||whoFromText371(t);if(who)acts.push({action:'take_item',target:who,params:{item:tm[2]}})}
+ // 好感
+ const aff=t.match(/(.{1,8}?)(?:的)?好感度?\s*(?:設為|改成|調到|變成)\s*([+-]?\d+)/)||t.match(/(.{1,8}?)(?:的)?好感度?\s*([+-]\d+)/);
+ if(aff){const who=resolveChar(aff[1])||whoFromText371(t);if(who){const n=aff[2];acts.push({action:'affection',target:who,params:/^[+-]/.test(n)&&!/設為|改成|調到|變成/.test(t)?{delta:+n}:{set:+n}})}}
+ // 移動／換場景（玩家或一行人）
+ if(/(帶我去|帶我們去|換到|換去|前往|去樓上|移動到|場景(?:改成|換成|換成)|走到|去客房|去公會)/.test(t)||/(?:讓|請).{0,8}(?:去|到|前往)/.test(t)&&/(客房|公會|酒館|市集|河邊|森林|鐵匠|通鋪|包廂)/.test(t)){
+  const pl=(t.match(/(?:去|到|前往|換到|換成|改成)\s*[「『]?([^」』，。！!？?\n]{1,16})/)||[])[1]||t;
+  const who=whoFromText371(t);const self=/帶我|帶我們|換場景|換到|前往|場景/.test(t)||/去樓上|去客房/.test(t);
+  if(self)acts.push({action:'move',target:who||null,params:{place:pl}});
+  else if(who&&who!=='me')acts.push({action:'move_char',target:who,params:{place:pl}})}
+ return acts}
+{const _oa=oocApply;oocApply=function(t){const r=_oa.apply(this,arguments);if(!S)return r;
+ try{r.fail=r.fail||[];r.pick=r.pick||null;const acts=parseOocActions371(t);
+  for(const a of acts){if(a.action==='create_char'||a.action==='set_role'||a.action==='time')continue;
+   if(a.action==='move'||a.action==='travel'){r._goPlace=a;continue}
+   const x=execAction371(a,{force:true});if(x.done)r.done.push(...x.done);if(x.fail)r.fail.push(...x.fail);if(x.pick&&!r.pick)r.pick=x.pick;if(x.go)r.go=x.go}}
+ catch(e){console.warn('ooc371',e)}return r}}
+
+/* ---------- 共用 OOC 管線 ---------- */
+function oocGate371(text,modeOn){let t=String(text||'').trim();if(!t)return{story:'',ooc:[]};
+ if(/^[/／]ooc\b/i.test(t)){t=t.replace(/^[/／]ooc\b[:：\s]*/i,'');return{story:'',ooc:[t].filter(Boolean)}}
+ if(modeOn)return{story:'',ooc:[t]};return typeof splitOOC==='function'?splitOOC(t):{story:t,ooc:[]}}
+function footer371(acts,fail,why){if(acts&&acts.length)return`✅ 系統實際執行：${acts.join('；')}。`;
+ let s='ℹ️ 系統這次沒有執行任何動作，只記下了指示。';if(fail&&fail.length)s+=' '+fail.join(' ');
+ if(why)s+=' '+why;return s}
+function hintPhrases371(){return'可以用例如：「莉娜換睡衣」「讓艾薇換成戰鬥裝」「請莉娜過來」「讓艾薇加入同行」「帶我去樓上客房」「時間跳到晚上」。也可以用旁邊的指令選單。'}
+async function classifyOoc371(text){if(!(CFG.mode==='live'&&typeof canLive==='function'&&canLive()))return null;
+ const P=placesAt371();const chars=Object.keys(CHARS||{}).filter(c=>S.chars&&S.chars[c]).slice(0,16).map(c=>`${nm(c)}(${c})`).join('、');
+ const rooms=P.rooms.map(r=>`${r.name}(${r.id})`).join('、');const locs=P.pubs.filter(p=>['tavern','dorm','guild','market','smithy','river','forest'].includes(p.loc)||p.loc===S.loc).map(p=>p.name+'('+p.loc+')').join('、');
+ const items=(S.inv||[]).filter(i=>i.qty>0).slice(0,12).map(i=>i.name).join('、');
+ const sys=`你是指令分類器，只輸出一個 JSON。把玩家的場外指示分到下列動作之一：outfit,summon,move_char,party_join,party_leave,give_item,take_item,create_char,set_role,emotion,move,time,affection,none,ambiguous
+角色：${chars||'無'}
+服裝：日常 daily、旅行 travel、戰鬥 battle、正式 formal、睡衣 base
+地點：${rooms}${rooms&&locs?'；':''}${locs}
+物品：${items||'無'}
+格式：{"action":"...","target":"lina","params":{"outfit":"base","place":"inn_room","item":"","set":0},"confidence":"high","ask":"你是要…嗎？"}
+不確定用 ambiguous。只是寫作風格指示用 none。不要解釋。`;
+ try{V371.calls++;const out=await callModel([{role:'system',content:sys},{role:'user',content:String(text).slice(0,200)}],{maxTokens:120,temperature:0});
+  const j=String(out||'').match(/\{[\s\S]*\}/);if(!j)return null;return JSON.parse(j[0])}catch(e){console.warn('classify371',e);return null}}
+function showConfirm371(ask,act,sink){const id='ask371_'+Date.now().toString(36);const html=`<div class="oocAsk371" id="${id}"><div>你是要${esc(ask||'執行這個動作')}嗎？</div><div class="row"><button class="btn sm" data-ask371="yes" data-id="${id}">是，執行</button><button class="btn g sm" data-ask371="no" data-id="${id}">不是</button></div></div>`;
+ V371.pending={id,act};if(sink&&sink.card)sink.card(html);else{const box=isPriv371()?$('#pv35Log'):$('#msgs');if(box){box.insertAdjacentHTML('beforeend',html);box.scrollTop=box.scrollHeight}}}
+function showOutfitPick371(who,sink){const id=who||'lina';const btns=wardrobe371(id).map(o=>`<button class="btn sm" data-of371="${id}:${o.k}">${esc(o.name)}${o.k===outfitOf(id)?'（目前）':''}</button>`).join('');
+ const html=`<div class="oocPick371"><div>請選擇${id==='me'?'你':esc(nm(id))}要換的服裝：</div><div class="row">${btns}</div></div>`;
+ if(sink&&sink.card)sink.card(html);else{const box=isPriv371()?$('#pv35Log'):$('#msgs');if(box){box.insertAdjacentHTML('beforeend',html);box.scrollTop=box.scrollHeight}}}
+document.addEventListener('click',async e=>{const y=e.target.closest&&e.target.closest('[data-ask371]');if(y){e.preventDefault();const ok=y.dataset.ask371==='yes';const p=V371.pending;V371.pending=null;const el=$('#'+y.dataset.id);if(el)el.remove();
+  if(ok&&p&&p.act){const r=execAction371(p.act,{force:true});if(r.go)await r.go;const msg='【系統】'+(ok?footer371(r.done,r.fail):'');if(isPriv371()){PR35.hist.push({role:'oocr',text:msg,ooc:true});renderPriv35()}else{pushMsg({role:'oocr',text:msg});try{renderMsgs()}catch(er){}}try{autosave()}catch(er){}}
+  return}
+ const o=e.target.closest&&e.target.closest('[data-of371]');if(o){e.preventDefault();const[id,k]=o.dataset.of371.split(':');const r=setOutfit371(id,k,{force:true});const wrap=o.closest('.oocPick371');if(wrap)wrap.remove();
+  const msg='【系統】\n'+footer371(r.ok?[r.msg]:[],r.ok?[]:[r.msg||'換裝失敗']);if(isPriv371()){PR35.hist.push({role:'oocr',text:msg,ooc:true});renderPriv35()}else{pushMsg({role:'oocr',text:msg});try{renderAll()}catch(er){}}}} ,true);
+
+async function oocRun371(notes,opt={}){const priv=!!opt.priv&&isPriv371();
+ const push=(role,text)=>{if(priv){PR35.hist.push({role,text,ooc:true});try{renderPriv35(true)}catch(e){}}else{if(role==='ooc'||role==='oocr')pushMsg({role,text});else pushMsg({role,text})}};
+ if(!priv){$('#send')&&($('#send').disabled=false)}
+ const bag=[];let skip=0;if(typeof V37!=='undefined')V37.oocPending=[];
+ for(const t of notes){if(priv){PR35.oocOnce=(PR35.oocOnce||[]).concat([t]).slice(-6)}else{push('ooc',t);S.oocOnce=(S.oocOnce||[]).concat([t]).slice(-6);if(priv){}}
+  if(priv)push('ooc',t);
+  const r=oocApply(t);bag.push({t,r});skip=Math.max(skip,r.min||0);
+  if(r.go)try{await r.go}catch(e){}
+  if(r._goPlace){const pl=resolvePlace371(r._goPlace.params.place);const g=await goPlace371(pl,{who:r._goPlace.target&&r._goPlace.target!=='me'?[r._goPlace.target]:[]});if(g.ok)r.done.push(g.msg);else{r.fail=r.fail||[];r.fail.push(g.msg||'沒辦法過去');if(g.offers)r.offered=1}}}
+ try{if(typeof V37!=='undefined'&&V37.oocPending)await Promise.all(V37.oocPending)}catch(e){console.warn(e)}
+ if(typeof V37!=='undefined')V37.oocPending=[];
+ // 關鍵字沒中、又像指令：分類
+ for(const b of bag){const r=b.r;if((r.done&&r.done.length)||(r.min||0)||r._goPlace||r.offered)continue;
+  if(!looksLikeAction371(b.t)&&!r.pick&&!(r.fail&&r.fail.length))continue;
+  const c=await classifyOoc371(b.t);
+  if(!c||c.action==='none'||!c.action){r.fail=(r.fail||[]).concat(['沒有辨識到可執行的指令。'+hintPhrases371()]);continue}
+  if(c.action==='ambiguous'||c.confidence==='low'||(!c.target&&['outfit','summon','party_join','party_leave','give_item','emotion','affection','move_char'].includes(c.action))){
+   const ask=c.ask||('執行「'+(c.action)+'」'+(c.target?'（'+c.target+'）':''));showConfirm371(ask,c,{});r.confirm=1;r.fail=(r.fail||[]).concat(['還不太確定，先請你確認。']);continue}
+  const x=execAction371(c,{force:true});if(x.go){const g=await x.go;if(g&&g.ok)x.done.push(g.msg);else if(g)x.fail.push(g.msg||'')}
+  r.done.push(...(x.done||[]));r.fail=(r.fail||[]).concat(x.fail||[]);if(x.pick)r.pick=x.pick}
+ const acts=bag.flatMap(b=>b.r.done||[]);const fail=bag.flatMap(b=>b.r.fail||[]);
+ const picks=bag.map(b=>b.r.pick).filter(Boolean);
+ if(typeof V37!=='undefined')V37.lastOocActs=acts.slice();V371.lastActs=acts.slice();
+ if(acts.length){try{if(priv)renderPriv35();else renderAll()}catch(e){}}
+ let reply='';
+ if(CFG.mode==='live'&&typeof canLive==='function'&&canLive()){try{if(priv)PBUSY35=true;else BUSY=true;
+  const out=await callModel([{role:'system',content:(priv&&typeof privSystem35==='function'?privSystem35([]):sysPrompt(S.talk||null))+`\n\n【現在的任務】玩家剛剛給了場外（OOC）指示。這不是故事內容。只用一到兩句繁體中文、以「【系統】」開頭簡短回覆。不要寫故事、不要讓角色說話、不要輸出任何標籤。\n【系統這次實際執行的動作】${acts.length?acts.join('；'):'沒有（只記下指示）'}。\n你只能確認上面列出的動作；不可以宣稱做了上面沒列出的事。`},{role:'user',content:'【場外指示】'+notes.join('；')}],{maxTokens:200});
+  reply=(typeof stripAllTags35==='function'?stripAllTags35:s=>String(s||'').replace(/<(speaker|memory|choices|scene|stat|acts)\b[^>]*>[\s\S]*?<\/\1>/gi,'').replace(/<[^>]+>/g,'').replace(/\[[a-z_]+\s*[:：][^\]\n]{0,40}\]/gi,'').trim())(String(out||'').replace(/<acts\b[^>]*>[\s\S]*?<\/acts>/gi,'')).slice(0,300)}catch(e){try{toast('AI 沒有回應：'+(e.message||e))}catch(x){}}finally{if(priv){PBUSY35=false;$('#pv35Send')&&($('#pv35Send').disabled=false)}else{BUSY=false;$('#send')&&($('#send').disabled=false)}}}
+ if(reply&&!reply.startsWith('【系統】'))reply='【系統】'+reply;
+ const CLAIM371=/(已|已經|幫你|為你|替你|馬上|立刻|這就)[^。！!？?\n]{0,10}(建立|新增|創建|生成|加入|加上|安排|移動|帶到|傳送|召喚|修改|改成|調整|增加|扣除|給了|登場|出現|換上|換好|穿過|穿上|換裝)/;
+ if(reply){const body=reply.replace(/^【系統】/,'');const parts=body.split(/(?<=[。！!？?\n])/);const kept=parts.filter(x=>!CLAIM371.test(x)||acts.some(a=>a&&x.includes(String(a).slice(0,6))));reply='【系統】'+(kept.join('').trim()||'收到。')}
+ let why='';if(!acts.length){if(fail.length)why='';else if(bag.some(b=>b.r.confirm))why='';else if(bag.some(b=>looksLikeAction371(b.t)))why='原因：沒有對應到可執行的指令。'+hintPhrases371()}
+ const real=footer371(acts,fail,why);
+ if(!reply)reply='【系統】'+real+(CFG.mode==='live'&&canLive()?'之後的回覆會照這個指示。':'這是給遊戲的指示，角色不會聽到；可以按「📌 設為長期規則」讓它一直有效。');
+ else reply+=`\n${real}`;
+ push('oocr',reply);
+ for(const p of picks)if(p.type==='outfit')showOutfitPick371(p.who);
+ if(skip>0){if(priv)PR35.min+=Math.min(skip,720);else await passTime(skip,true,true)}
+ try{autosave();if(!priv)saveSlot()}catch(e){}
+ return{acts,fail,reply}}
+
+oocTurn=async function(notes){return oocRun371(notes,{priv:false})};
+if(typeof privOOC35==='function')privOOC35=async function(notes){return oocRun371(notes,{priv:true})};
+
+/* ---------- 私下空間：OOC 按鈕必須走進同一條 OOC 管線，絕不進角色對話 ---------- */
+{const _ps=privSend35;privSend35=async function(textArg,toArg){if(!PR35)return _ps.apply(this,arguments);
+ if(PBUSY35&&!(textArg!=null))return;
+ const inp=$('#pv35Inp');const raw=String(textArg!=null?textArg:(inp?inp.value:'')).trim();if(!raw)return;
+ const gate=oocGate371(raw,!!PR35.oocMode);
+ if(gate.ooc.length&&!gate.story){if(textArg==null&&inp)inp.value='';const was=!!PR35.oocMode;if(was)setPrivOOC35(false);TTS35&&TTS35.stop&&TTS35.stop();return oocRun371(gate.ooc,{priv:true})}
+ if(gate.ooc.length&&gate.story){if(textArg==null&&inp)inp.value='';if(PR35.oocMode)setPrivOOC35(false);TTS35&&TTS35.stop&&TTS35.stop();await oocRun371(gate.ooc,{priv:true});textArg=gate.story}
+ const asked=detectAll371(gate.story||raw,{who:PR35.who,to:toArg});
+ const msg=await _ps.call(this,gate.story||textArg,toArg);
+ try{if(msg&&msg.raw)syncFromReply371(msg.raw,{asked,ids:(PR35.who||[]).concat('me'),priv:true})}catch(e){console.warn('sync371',e)}
+ return msg}}
+
+{const _sp=setPrivOOC35;setPrivOOC35=function(on){const r=_sp.apply(this,arguments);try{const box=$('#pv35');if(box)box.classList.toggle('ooc-on',!!on);const i=$('#pv35Inp');if(i&&on){i.placeholder='OOC 指令模式：對 AI／遊戲主持人下指令（不是故事內容，角色聽不到；例如：莉娜換睡衣）';i.title='OOC 指令模式'}}catch(e){}return r}}
+try{OOC_PH35='OOC 指令模式：對 AI／遊戲主持人下指令（不是故事內容，角色聽不到；例如：莉娜換睡衣）'}catch(e){}
+
+/* ---------- 對話意圖：換裝＋移動（主線與私下空間） ---------- */
+function detectAll371(text,o={}){const t=String(text||'');const out=[];try{out.push(...detectIntent35(t,o))}catch(e){}
+ const who=whoFromText371(t,{pool:o.who||(isPriv371()?PR35.who:here()),here:true})||o.to||null;
+ if(/(更換?衣服|換裝|換衣服|請.{0,8}衣服)/.test(t)&&!out.some(a=>a.k==='outfit'))out.push({k:'outfit',who:who||(isPriv371()&&PR35.who[0]),v:null,ask:true});
+ if(/(帶我去|帶我們去|帶你去|帶路去|帶我們到|帶我到|去樓上|前往|走去|出發去)/.test(t)){const q=(t.match(/(?:去|到|前往)\s*[「『]?([^」』，。！!？?\n]{1,16})/)||[])[1]||t;const pl=resolvePlace371(q);out.push({k:'move',who,v:pl,q})}
+ return out}
+{const _di=detectIntent35;detectIntent35=function(text,o={}){const a=_di.apply(this,arguments);try{const t=String(text||'');if(/(更換?衣服|換裝|換衣服)/.test(t)&&!a.some(x=>x.k==='outfit')){const who=whoFromText371(t,{pool:o.who,here:true})||o.to;a.push({k:'outfit',who,v:parseOutfitName371(t),ask:true})}
+ }catch(e){}return a}}
+{const _it=intentText35;intentText35=function(list){let t='';try{t=_it.apply(this,arguments)}catch(e){}
+ try{const ids=isPriv371()?(PR35.who||[]):here();const ward=ids.map(c=>`${nm(c)}可換：${outfitList371(c)}`).join('；');
+  const P=placesAt371();const places=`可去的私下空間：${P.rooms.map(r=>r.name+'（'+r.id+'）').join('、')||'無'}。附近地點：${P.pubs.filter(p=>p.loc===S.loc||['tavern','dorm','guild','market','smithy'].includes(p.loc)).map(p=>p.name).join('、')}`;
+  const extra=`【可執行的服裝與地點（一定要從清單選，不要發明）】\n${ward}\n${places}\n若本則需要換裝、移動、給東西或改表情，在回覆末尾加一行 <acts>[{"k":"outfit|move|emotion|equip|give|take","who":"角色名","v":"daily|travel|battle|formal|base 或地點id"}]</acts>。移動時 v 只能是上面的地點或房間 id（例如 inn_room、guild）。不需要動作就不要加此塊。`;
+  if(list&&list.some(a=>a.k==='outfit'&&(a.ask||!a.v)))t+='\n玩家請角色換衣服，但沒指定哪一套：請從清單選一套合適的，並輸出對應標籤或 <acts>。';
+  if(list&&list.some(a=>a.k==='move')){const m=list.find(a=>a.k==='move');t+=`\n玩家想去「${(m.q||'') }」。${m.v&&m.v.kind!=='missing'?`請帶到「${m.v.name}」（id：${m.v.id}）並輸出 <acts>[{"k":"move","v":"${m.v.id}"}]</acts>。`:`清單裡沒有完全相同的地方，請不要假裝到達；可建議最接近的選項。`}`}
+  return(t?t+'\n\n':'')+extra}catch(e){return t}}}
+{const _wp=wearPrompt;if(typeof wearPrompt==='function')wearPrompt=function(){const b=_wp.apply(this,arguments);try{return b+'\n'+intentText35([])}catch(e){return b}}}
+
+function extractActsBlock371(raw){const acts=[];const clean=String(raw||'').replace(/<acts>([\s\S]*?)<\/acts>/ig,(_,j)=>{try{const a=JSON.parse(j.trim());(Array.isArray(a)?a:[a]).forEach(x=>acts.push(x))}catch(e){}return''});
+ return{raw:clean,acts}}
+function inferOutfitFromText371(text,ids){const t=String(text||'');if(!/(換上|換成|換上了|穿上|改穿|更衣|換了.*衣|穿起|披上)/.test(t)&&!/(睡衣|睡袍|寢衣|戰鬥服|戰鬥裝|戰甲|盔甲|禮服|盛裝|正式服裝|旅行裝|行裝|便服|日常服|常服)/.test(t))return[];
+ const out=[];for(const id of ids||[]){if(id==='me')continue;const n=nm(id);const near=n&&t.includes(n);const of=parseOutfitName371(t);if(!of)continue;
+  // 信心：有衣服關鍵詞；若有多名在場，必須點名
+  const named=near||(ids.filter(c=>c!=='me').length<=1);if(!named)continue;out.push({who:id,o:of,conf:near?2:1})}
+ return out}
+function inferMoveFromText371(text){const t=String(text||'');if(!/(走[上到進]|帶著你|帶你|來到了|來到|走進了|走進|上樓|推開.{0,6}門|出發去|前往|帶到)/.test(t))return null;
+ const q=(t.match(/(?:來到了|來到|走進了|走進|前往|去了|帶到|上樓[去到]?)\s*[「『]?([^」』，。！!？?\n]{1,16})/)||[])[1]||(/上樓|客房/.test(t)?'樓上客房':null);
+ if(!q)return null;return resolvePlace371(q)}
+async function applyActsList371(acts,opt={}){const ids=opt.ids||(isPriv371()?PR35.who:here());const done=[];
+ for(const a of acts||[]){const k=a.k||a.action;let who=a.who?resolveChar(a.who)||(a.who==='me'?'me':null):null;if(!who&&ids.length===1)who=ids[0];
+  if(k==='outfit'){const o=parseOutfitName371(a.v||a.outfit);if(who&&o){if(!OUTFITS[o]){note371(`【👗 ${who==='me'?'你':nm(who)}沒有「${a.v}」這套衣服，維持原樣。最接近的可選：${outfitList371(who)}】`,isPriv371());continue}
+    const r=setOutfit371(who,o,{asked:opt.asked,force:!!opt.force});if(r.ok&&!r.same)done.push(r.msg)}}
+  else if(k==='emotion'&&who)applyAction35({k:'emotion',who,v:a.v},{note:t=>note371(t,isPriv371())});
+  else if(k==='move'||k==='scene'||k==='location'){const pl=typeof a.v==='object'?a.v:resolvePlace371(String(a.v||a.place||''));const g=await goPlace371(pl,{who:who&&who!=='me'?[who]:[]});if(g.ok&&!g.same)done.push(g.msg)}
+  else if(['equip','unequip','give','take'].includes(k)&&who)applyAction35({k,who,v:a.v},{note:t=>note371(t,isPriv371())})}
+ return done}
+async function syncFromReply371(raw,opt={}){if(!raw||!S)return[];const ids=opt.ids||(isPriv371()?(PR35.who||[]):here());
+ const block=extractActsBlock371(raw);let text=block.raw;
+ // 已有的 [outfit] 等標籤由既有 extractActs35 處理；這裡補 <acts> 與移動，以及換裝關鍵字後援
+ const before=Object.fromEntries(ids.map(c=>[c,outfitOf(c)]));
+ const done=await applyActsList371(block.acts,{ids,asked:!!(opt.asked&&opt.asked.some(a=>a.k==='outfit'||a.k==='move')),force:false});
+ // 若沒有移動動作，用語意後援
+ const hadMove=block.acts.some(a=>a&&(a.k==='move'||a.action==='move'||a.k==='scene'));
+ if(!hadMove){const askedMove=opt.asked&&opt.asked.find(a=>a.k==='move');const inf=inferMoveFromText371(text)||(askedMove&&askedMove.v?askedMove.v:(askedMove&&askedMove.q?resolvePlace371(askedMove.q):null));
+  if(inf){if(inf.kind==='missing')showPlaceOffers371(inf);else{const g=await goPlace371(inf,{});if(g.ok&&!g.same)done.push(g.msg)}}}
+ const hadOf=block.acts.some(a=>a&&(a.k==='outfit'||a.action==='outfit'));
+ if(!hadOf){const its=inferOutfitFromText371(text,ids);if(!its.length&&/(換上|換成|穿上|改穿).{0,16}(袍|裙|甲|衣|裝|服)/.test(text)){const id=(ids||[]).find(c=>c!=='me'&&text.includes(nm(c)))||(ids||[]).filter(c=>c!=='me')[0];if(id)note371(`【👗 描述的衣服不在${nm(id)}的服裝清單裡，維持原樣。可選：${outfitList371(id)}】`,isPriv371())}
+  for(const it of its){if(outfitOf(it.who)!==before[it.who])continue;if(!OUTFITS[it.o]){note371(`【👗 描述的衣服不在${nm(it.who)}的服裝清單裡，維持原樣。可選：${outfitList371(it.who)}】`,isPriv371());continue}
+   const r=setOutfit371(it.who,it.o,{asked:!!(opt.asked&&opt.asked.some(a=>a.k==='outfit'))});if(r.ok&&!r.same)done.push(r.msg)}}
+ return done}
+{const _pa=playAI;playAI=async function(raw,meta={}){const msg=await _pa.apply(this,arguments);
+ try{const asked=typeof INTENT35!=='undefined'?INTENT35:detectAll371((L.filter(m=>m.role==='user').slice(-1)[0]||{}).text||'');await syncFromReply371(String(raw||''),{asked,ids:here().concat('me'),priv:false})}catch(e){console.warn('sync371 main',e)}
+ return msg}}
+
+/* 示範模式：玩家意圖含移動時，補上標籤讓離線也能同步 */
+{const _gr=typeof genReply==='function'?genReply:null;if(_gr)genReply=async function(q){const r=await _gr.apply(this,arguments);try{const mv=(typeof INTENT35!=='undefined'?INTENT35:[]).find(a=>a.k==='move');if(mv&&r&&!r.live){const pl=mv.v&&mv.v.kind!=='missing'?mv.v:resolvePlace371(mv.q||'');if(pl&&pl.kind!=='missing')r.raw=(r.raw||'')+`<acts>[{"k":"move","v":"${pl.id}"}]</acts>`}}catch(e){}return r}}
+{const _dp=typeof demoPriv35==='function'?demoPriv35:null;if(_dp)demoPriv35=function(text,to){let raw=_dp.apply(this,arguments);try{const intent=detectAll371(text,{who:PR35&&PR35.who,to});const mv=intent.find(a=>a.k==='move');if(mv){const pl=mv.v&&mv.v.kind!=='missing'?mv.v:resolvePlace371(mv.q||text);if(pl&&pl.kind!=='missing')raw+=`<acts>[{"k":"move","v":"${pl.id}"}]</acts>`;else if(pl&&pl.kind==='missing'){/* 回覆後由 sync 顯示選項 */}}
+  const of=intent.find(a=>a.k==='outfit'&&!a.v);if(of&&of.who){const allow=isPriv371()?['base','daily','formal','travel']:allowedOutfits371(of.who);const pick=allow.includes('base')&&/休息|睡|晚|房/.test(text)?'base':(allow[0]||'daily');raw+=`[outfit:${({base:'sleepwear',battle:'combat'}[pick]||pick)}]`}
+ }catch(e){}return raw}}
+
+/* ---------- 指令選單（主線 OOC 與私下空間） ---------- */
+const MENU371=[{id:'outfit',label:'換裝',need:'char',opt:'outfits'},{id:'summon',label:'叫角色過來',need:'char'},{id:'move_char',label:'讓角色去某地',need:'char',opt:'places'},{id:'party_join',label:'加入同行',need:'char'},{id:'party_leave',label:'離隊',need:'char'},{id:'give_item',label:'給道具',need:'char',opt:'items'},{id:'take_item',label:'收回道具',need:'char',opt:'npcitems'},{id:'create_char',label:'建立角色',need:'name'},{id:'set_role',label:'設定身分',need:'char',opt:'text'},{id:'emotion',label:'換表情',need:'char',opt:'emos'},{id:'move',label:'換場景／去某地',opt:'places'},{id:'time',label:'跳時間',opt:'slots'},{id:'affection',label:'設定好感',need:'char',opt:'num'}];
+function menuHTML371(id){const chars=['me',...Object.keys(CHARS||{}).filter(c=>S&&S.chars&&S.chars[c])];
+ const ch=chars.map(c=>`<option value="${c}">${esc(c==='me'?'你（玩家）':nm(c))}</option>`).join('');
+ const acts=MENU371.map(a=>`<option value="${a.id}">${a.label}</option>`).join('');
+ return`<div class="oocMenu371" id="${id}"><span class="om-lab">🛠️ 指令</span><select data-om="act">${acts}</select><select data-om="who">${ch}</select><span data-om="opt"></span><button class="btn sm" data-om="go">執行</button></div>`}
+function fillMenuOpt371(box){const act=box.querySelector('[data-om="act"]').value;const who=box.querySelector('[data-om="who"]').value;const def=MENU371.find(a=>a.id===act);const slot=box.querySelector('[data-om="opt"]');if(!def)return;
+ let h='';if(def.need==='name')h=`<input data-om="name" placeholder="名字" maxlength="12"><input data-om="role" placeholder="身分，例如鐵匠" maxlength="16">`;
+ else if(def.opt==='outfits')h=`<select data-om="v">${wardrobe371(who).map(o=>`<option value="${o.k}">${esc(o.name)}</option>`).join('')}</select>`;
+ else if(def.opt==='emos')h=`<select data-om="v">${['開心','害羞','生氣','悲傷','驚訝','平靜'].map(e=>`<option>${e}</option>`).join('')}</select>`;
+ else if(def.opt==='places'){const P=placesAt371();h=`<select data-om="v">${P.rooms.map(r=>`<option value="priv:${r.id}">🚪 ${esc(r.name)}</option>`).join('')}${P.pubs.filter(p=>['tavern','dorm','guild','market','smithy','river','forest'].includes(p.loc)||p.loc===S.loc).map(p=>`<option value="loc:${p.loc}">🗺️ ${esc(p.name)}</option>`).join('')}</select>`}
+ else if(def.opt==='items')h=`<select data-om="v">${((S.inv||[]).filter(i=>i.qty>0).map(i=>`<option value="${esc(i.name)}">${esc(i.name)}</option>`).join('')||'<option value="">（背包是空的）</option>')}</select>`;
+ else if(def.opt==='npcitems'){const its=Object.keys((S.chars[who]&&S.chars[who].items)||{}).filter(n=>(S.chars[who].items[n]||0)>0);h=`<select data-om="v">${its.map(n=>`<option>${esc(n)}</option>`).join('')||'<option value="">（身上沒有物品）</option>'}</select>`}
+ else if(def.opt==='slots')h=`<select data-om="v">${SLOT_OPT371.map(([n])=>`<option>${n}</option>`).join('')}<option>隔天早上</option></select>`;
+ else if(def.opt==='num')h=`<input data-om="v" type="number" min="0" max="100" value="${(S.chars[who]&&S.chars[who].aff)||0}" style="width:80px">`;
+ else if(def.opt==='text')h=`<input data-om="v" placeholder="例如：公會長" maxlength="16">`;
+ slot.innerHTML=h;const whoSel=box.querySelector('[data-om="who"]');if(whoSel)whoSel.style.display=def.need==='char'||def.opt==='npcitems'||def.opt==='outfits'||def.opt==='emos'||def.opt==='num'||def.opt==='text'?'':'none'}
+async function runMenu371(box){const act=box.querySelector('[data-om="act"]').value;const who=box.querySelector('[data-om="who"]').value;const v=(box.querySelector('[data-om="v"]')||{}).value;
+ const name=(box.querySelector('[data-om="name"]')||{}).value;const role=(box.querySelector('[data-om="role"]')||{}).value;
+ let line='';const a={action:act,target:who,params:{}};
+ if(act==='outfit'){a.params.outfit=v;line=`請${who==='me'?'我':nm(who)}換成${OUTFITS[v]}`}
+ else if(act==='emotion'){a.params.emotion=v;line=`讓${nm(who)}露出${v}的表情`}
+ else if(act==='summon')line=`請${nm(who)}過來`;
+ else if(act==='move_char'){a.params.place=v.replace(/^(priv|loc):/,'');line=`請${nm(who)}去${a.params.place}`}
+ else if(act==='party_join')line=`讓${nm(who)}加入同行`;
+ else if(act==='party_leave')line=`請${nm(who)}離隊`;
+ else if(act==='give_item'){a.params.item=v;line=`把${v}給${nm(who)}`}
+ else if(act==='take_item'){a.params.item=v;line=`收回${nm(who)}的${v}`}
+ else if(act==='create_char'){line=`建立新角色，名字叫「${(name||'').trim()}」，是${(role||'鎮民').trim()}`}
+ else if(act==='set_role'){line=`設定${nm(who)}為${v}`}
+ else if(act==='move'){a.params.place=v.replace(/^(priv|loc):/,'');line=`帶我去${a.params.place}`}
+ else if(act==='time'){line=`時間跳到${v}`}
+ else if(act==='affection'){a.params.set=+v;line=`把${nm(who)}的好感度設為${v}`}
+ if(isPriv371())await oocRun371([line],{priv:true});else await oocTurn([line])}
+function mountMenuMain371(){if($('#oocMenu371m'))return;const bar=$('#inputbar');if(!bar)return;bar.insertAdjacentHTML('afterbegin',menuHTML371('oocMenu371m'));const box=$('#oocMenu371m');fillMenuOpt371(box);box.style.display=($('#inputbar').dataset.im==='ooc')?'flex':'none'}
+function mountMenuPriv371(){if(!isPriv371())return;if($('#oocMenu371p'))return;const inn=$('#pv35 .pv35-in');if(!inn)return;inn.insertAdjacentHTML('beforebegin',menuHTML371('oocMenu371p'));const box=$('#oocMenu371p');fillMenuOpt371(box);box.style.display=PR35.oocMode?'flex':'none'}
+{const _rab=renderAddrBar;renderAddrBar=function(){const r=_rab.apply(this,arguments);try{mountMenuMain371();const box=$('#oocMenu371m');if(box)box.style.display=($('#inputbar').dataset.im==='ooc')?'flex':'none'}catch(e){}return r}}
+{const _rp=renderPriv35;renderPriv35=function(){const r=_rp.apply(this,arguments);try{if(PR35){if(!$('#pv35Ooc')){const box=$('#pv35 .pv35-in');if(box)box.insertAdjacentHTML('afterbegin',`<button class="btn g sm" id="pv35Ooc" type="button" title="切換成對 AI 說（OOC）">🛠️ OOC</button>`)}
+   mountMenuPriv371();const box=$('#oocMenu371p');if(box)box.style.display=PR35.oocMode?'flex':'none';if($('#pv35'))$('#pv35').classList.toggle('ooc-on',!!PR35.oocMode);if(PR35.oocMode)setPrivOOC35(true)}
+ }catch(e){}return r}}
+document.addEventListener('change',e=>{const el=e.target.closest&&e.target.closest('.oocMenu371');if(!el)return;if(e.target.matches('[data-om="act"],[data-om="who"]'))fillMenuOpt371(el)},true);
+document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-om="go"]');if(!b)return;e.preventDefault();const box=b.closest('.oocMenu371');if(box)runMenu371(box)},true);
+document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('#pv35Ooc');if(b&&PR35){setTimeout(()=>{const m=$('#oocMenu371p');if(m)m.style.display=PR35.oocMode?'flex':'none';if($('#pv35'))$('#pv35').classList.toggle('ooc-on',!!PR35.oocMode)},0)}},true);
+
+/* ---------- 餘額／配額錯誤（不要誤說成模型名稱錯誤） ---------- */
+{const _fh=friendlyHttp;friendlyHttp=function(st,t,p){const raw=String(t||'');const low=/credit balance is too low|insufficient[_ ]?(credits?|quota|funds)|billing|purchase credits|quota exceeded|exceeded your current quota|resource exhausted|RESOURCE_EXHAUSTED|沒有餘額|餘額不足/i.test(raw);
+ if(low||(st===400||st===403||st===429)&&low||/credit balance is too low/i.test(raw)){const prov=(p&&p.provider)||'';
+  const hint=prov==='anthropic'||/anthropic|claude/i.test((p&&p.base)||'')?'帳戶餘額不足，請到 Anthropic Console 儲值':prov==='openai'||/openai/.test((p&&p.base)||'')?'帳戶額度不足，請到 OpenAI 平台檢查計費與額度':prov==='gemini'||/googleapis/.test((p&&p.base)||'')?'Gemini 額度不足或配額已用完，請到 Google AI Studio 檢查計費':prov==='openrouter'?'OpenRouter 額度不足，請到 openrouter.ai 檢查配額':'帳戶餘額或額度不足，請到該服務的計費頁面儲值或檢查配額';
+  return new AIError(`帳戶餘額不足（HTTP ${st}）${raw?`（${raw.slice(0,160)}）`:''}`,hint)}
+ const r=_fh.apply(this,arguments);if(st===400&&/credit|quota|billing|balance/i.test(raw)&&r&&r.hint&&/模型名稱/.test(r.hint)){r.hint='帳戶餘額不足，請到該服務的計費頁面儲值';}
+ return r}}
+
+
+/* ---------- v3.7.1 立繪：ComfyUI 一律顯示、免費接口、畫圖錯誤中文 ---------- */
+const NEG371='nsfw, nude, nudity, sexual, bare chest, child, loli, underage, extra limbs, extra fingers, extra arms, mutated hands, bad hands, deformed, ugly, text, watermark, logo, signature, lowres, blurry, cropped, worst quality, jpeg artifacts';
+try{IMG37_PROV.comfy='ComfyUI（本機，免費）';IMG37_PROV.pollinations='Pollinations（免費、免金鑰，約 45 秒一張）';IMG37_PROV.stability='Stability AI（新帳戶 25 點免費額度）'}catch(e){}
+const IMG37_ORDER=['gpt','gemini','comfy','pollinations','stability','brief'];
+function img37Note371(prov){return prov==='brief'?'只產生文字需求檔，不呼叫任何服務、不花費額度。':prov==='comfy'?'使用本機 ComfyUI，不耗額度':prov==='pollinations'?'使用 Pollinations 免費接口，免金鑰。同一 IP 約 45 秒才能再出一張新圖，圖上可能有浮水印。':prov==='stability'?'使用你自己的 Stability 金鑰（只存在這個瀏覽器）。新帳戶有 25 點免費額度，Core 一張約 3 點。':'每按一次生成 1 張，會使用你的 API 額度。Gemini 文字有免費額度，但畫圖模型（如 gemini-2.5-flash-image）通常需要付費。'}
+function imgApiErr371(kind,st,raw,fallback){raw=String(raw||'');const low=raw.toLowerCase();let tip=fallback||'';
+ if(kind==='gemini'){if(st===429||/exceeded your current quota|resource.?exhausted|quota/i.test(raw))tip='Gemini 畫圖額度已用完或此金鑰沒有畫圖額度（圖像模型通常需要在 Google AI Studio 開通付費），可改用 ComfyUI（本機，免費）';
+  else if(st===401||/api.?key|invalid|permission|unauthorized|unauthenticated/i.test(raw))tip='Gemini 金鑰無效或沒有權限，請到「繪圖 API 設定」或 AI 連線檢查金鑰。';
+  else if((st===400||st===402||st===403)&&/billing|credit|payment|quota/i.test(raw))tip='Gemini 帳戶帳單或付款有問題，請到 Google AI Studio 檢查計費，或改用 ComfyUI（本機，免費）。'}
+ else if(kind==='openai'||kind==='gpt'){if(st===429||/insufficient_quota|rate limit|exceeded your current quota/i.test(raw))tip='OpenAI 畫圖額度已用完或目前無法使用（insufficient_quota／429），請到 OpenAI Platform 檢查配額與計費，或改用 ComfyUI（本機，免費）。';
+  else if(st===401||/invalid.?api.?key|unauthorized|incorrect api key/i.test(raw))tip='OpenAI 金鑰無效或沒有權限，請到「繪圖 API 設定」或 AI 連線檢查金鑰。';
+  else if((st===400||st===402||st===403)&&/billing|credit|payment|insufficient/i.test(raw))tip='OpenAI 帳戶帳單或付款有問題，請到 OpenAI Platform 檢查計費，或改用 ComfyUI（本機，免費）。'}
+ else if(kind==='pollinations'){if(st===402||st===429||/free_limit|retry/i.test(low))tip=tip||'Pollinations 免費額度是每個 IP 約 45 秒一張新圖，請稍後再試，或改用本機 ComfyUI（免費）。';
+  else if(!tip)tip='Pollinations 出圖失敗。'}
+ else if(kind==='stability'){if(!raw&&!st&&tip){/* keep */}else if(st===401||/unauthorized|invalid/i.test(raw))tip='Stability AI 金鑰無效或沒有權限，請到「繪圖 API 設定」檢查金鑰（只存在這個瀏覽器）。';
+  else if(st===402||st===429||/credit|quota|payment|balance/i.test(raw))tip='Stability AI 額度不足或目前無法使用。新帳戶的 25 點免費額度用完後需要儲值，或改用本機 ComfyUI（免費）。';
+  else if(!tip)tip=st?`Stability AI 出圖失敗（HTTP ${st}）`:'Stability AI 出圖失敗。'}
+ if(!tip)tip=fallback||(st?`畫圖失敗（HTTP ${st}）`:'畫圖失敗');
+ const html=`<div class="note" style="color:#ff9a9a">❌ ${esc(tip)}${raw?`<details class="img37err"><summary>原始訊息</summary><pre>${esc(raw.slice(0,800))}</pre></details>`:''}</div>`;
+ const err=new Error(tip);err.html=html;err.raw=raw;err.status=st;return err}
+function comfyOfflineMsg371(){const url=(typeof c37Base==='function'?c37Base():'')||'http://127.0.0.1:8000';
+ return `連不上本機 ComfyUI（${url}）。請到「設定 → 🎨 繪圖／ComfyUI」檢查網址並按「🔌 測試連線」。網頁版的 CORS 必須允許 https://gamer0819-hue.github.io；本機直接開檔（file://）可用啟動參數 --enable-cors-header *。`}
+function buildComfyPortraitGraph371(p={}){const prompt=String(p.prompt||''),negative=p.negative!=null?String(p.negative):NEG371;
+ const w=p.w||512,h=p.h||768,seed=p.seed!=null?p.seed:1;const base=typeof c37==='function'?c37():{};const c=Object.assign({},base,p.models||{});
+ if(p.unet)c.unet=p.unet;if(p.clip)c.clip=p.clip;if(p.vae)c.vae=p.vae;if(p.ckpt)c.ckpt=p.ckpt;
+ const tpl=p.tpl||c.tpl||'qwen21';
+ if(tpl==='sd'||p.graph==='sd'){return{'4':{class_type:'CheckpointLoaderSimple',inputs:{ckpt_name:c.ckpt||'model.safetensors'},_meta:{title:'月影_模型'}},'6':{class_type:'CLIPTextEncode',inputs:{text:prompt,clip:['4',1]},_meta:{title:'月影_正向提示詞'}},'7':{class_type:'CLIPTextEncode',inputs:{text:negative,clip:['4',1]},_meta:{title:'月影_負向提示詞'}},'5':{class_type:'EmptyLatentImage',inputs:{width:w,height:h,batch_size:1},_meta:{title:'月影_尺寸'}},'3':{class_type:'KSampler',inputs:{seed,steps:+c.steps||25,cfg:+c.cfg||7,sampler_name:c.sampler||'euler',scheduler:c.scheduler||'simple',denoise:1,model:['4',0],positive:['6',0],negative:['7',0],latent_image:['5',0]},_meta:{title:'月影_種子'}},'8':{class_type:'VAEDecode',inputs:{samples:['3',0],vae:['4',2]},_meta:{title:'月影_解碼'}},'9':{class_type:'SaveImage',inputs:{filename_prefix:'moonshadow/portrait',images:['8',0]},_meta:{title:'月影_輸出'}}}}
+ const req={kind:'portrait',prompt,negative,w,h,seed,refs:p.refs||[]};if(typeof c37Qwen==='function')return c37Qwen(req,c);
+ return buildComfyPortraitGraph371(Object.assign({},p,{tpl:'sd'}))}
+async function fitPortrait371(url){let u=url;try{if(typeof cropTo==='function')u=await cropTo(u,2/3)}catch(e){}try{if(typeof compressImg==='function')u=await compressImg(u,768)}catch(e){}return u}
+async function pingComfy371(){try{const r=await c37Fetch('/system_stats',{},{timeout:5000});if(r&&r.ok)return true}catch(e){}
+ const err=new Error(comfyOfflineMsg371());err.html=`<div class="note" style="color:#ff9a9a">❌ ${esc(comfyOfflineMsg371())}</div>`;throw err}
+async function listComfyModels371(){const out={unet:[],clip:[],vae:[],ckpt:[],ok:false};
+ try{const U=await c37ObjInfo('UNETLoader'),C=await c37ObjInfo('CLIPLoader'),V=await c37ObjInfo('VAELoader'),K=await c37ObjInfo('CheckpointLoaderSimple');
+  out.unet=(typeof c37Opts==='function'&&c37Opts(U,'unet_name'))||[];out.clip=(typeof c37Opts==='function'&&c37Opts(C,'clip_name'))||[];
+  out.vae=(typeof c37Opts==='function'&&c37Opts(V,'vae_name'))||[];out.ckpt=(typeof c37Opts==='function'&&c37Opts(K,'ckpt_name'))||[];
+  out.ok=!!(out.unet.length||out.clip.length||out.vae.length||out.ckpt.length)}catch(e){}return out}
+async function fillComfyModels371(){const box=$('#img37Comfy');if(!box)return;const lists=await listComfyModels371();V371.comfyModels=lists;const c=typeof c37==='function'?c37():{};
+ const put=(id,list,cur)=>{const el=$('#'+id);if(!el||el.tagName!=='SELECT')return;const v=el.value||cur||'';const opts=list&&list.length?list:(v?[v]:[]);
+  el.innerHTML=(v&&!opts.includes(v)?`<option value="${esc(v)}" selected>${esc(v)}</option>`:'')+opts.map(x=>`<option value="${esc(x)}" ${x===v?'selected':''}>${esc(x)}</option>`).join('')+(opts.length?'':`<option value="${esc(v)}">${esc(v||'尚未讀到模型清單')}</option>`)};
+ put('img37Unet',lists.unet,c.unet);put('img37Clip',lists.clip,c.clip);put('img37Vae',lists.vae,c.vae);put('img37Ckpt',lists.ckpt,c.ckpt);
+ const st=$('#img37ComfySt');if(st)st.textContent=lists.ok?'已從本機 ComfyUI 讀取模型清單。':'還沒連上 ComfyUI，先用設定裡的模型名；連線後可按「重新讀取」。'}
+function applyComfyPicks371(){if(typeof c37!=='function')return;const c=c37();const v=id=>{const e=$('#'+id);return e&&e.value?e.value.trim():''};
+ if(v('img37Unet'))c.unet=v('img37Unet');if(v('img37Clip'))c.clip=v('img37Clip');if(v('img37Vae'))c.vae=v('img37Vae');if(v('img37Ckpt'))c.ckpt=v('img37Ckpt');
+ const n=$('#img37Neg');if(n)img37().neg=n.value;try{img37Save()}catch(e){}}
+async function genComfyPortrait371(id,o,expr,prompt,force){await pingComfy371();applyComfyPicks371();
+ const neg=(($('#img37Neg')||{}).value!=null?$('#img37Neg').value:(img37().neg||NEG371));
+ const was=c37().on;c37().on=true;
+ try{const refs=[];const cur=A['of:'+id+'/'+o]?'of:'+id+'/'+o:(()=>{try{return exprKey(id)}catch(e){return null}})();if(cur&&A[cur])refs.push(A[cur]);
+  const def=typeof psList==='function'&&psList(id).find(p=>p.def);if(def&&A['ps:'+def.id]&&A['ps:'+def.id]!==refs[0])refs.push(A['ps:'+def.id]);
+  const seed=force?Math.floor(Math.random()*1e9):(typeof hstr==='function'?hstr(id+o+expr+prompt):Date.now());
+  const H=c37().res||768,W=Math.round(H*2/3/8)*8;
+  const url=await c37Run({kind:'portrait',label:`${charInfo37(id).name}・${OUTFITS[o]||o}・${expr}`,prompt,negative:neg,w:W,h:H,seed,refs,force:!!force});
+  return await fitPortrait371(url)}
+ finally{c37().on=was}}
+async function blobUrl371(blob){return await new Promise((rs,rj)=>{const fr=new FileReader();fr.onload=()=>rs(fr.result);fr.onerror=rj;fr.readAsDataURL(blob)})}
+async function genPollinations371(prompt,force){const seed=force?Math.floor(Math.random()*1e9):Math.floor(Math.random()*9e8+1);
+ const url='https://image.pollinations.ai/prompt/'+encodeURIComponent(prompt)+`?width=512&height=768&seed=${seed}&safe=true`;
+ const ctl=new AbortController();const tm=setTimeout(()=>ctl.abort(),120000);let r;
+ try{r=await fetch(url,{signal:ctl.signal})}catch(e){throw imgApiErr371('pollinations',0,String(e.message||e),e.name==='AbortError'?'等待 Pollinations 逾時（2 分鐘）':'連不上 Pollinations，請檢查網路。')}
+ finally{clearTimeout(tm)}
+ if(!r.ok){const raw=await r.text().catch(()=>'')||('HTTP '+r.status);const wait=r.headers&&r.headers.get&&r.headers.get('Retry-After');
+  const tip=(r.status===402||r.status===429)?('Pollinations 免費額度是每個 IP 約 45 秒一張新圖，請稍後再試'+(wait?`（約 ${wait} 秒後）`:'')+'，或改用本機 ComfyUI（免費）。'):'Pollinations 出圖失敗';
+  throw imgApiErr371('pollinations',r.status,raw,tip)}
+ const data=await blobUrl371(await r.blob());return await fitPortrait371(data)}
+async function genStability371(prompt){const c=img37();const key=(c.stabilityKey||'').trim();
+ if(!key)throw imgApiErr371('stability',0,'','還沒有 Stability AI 金鑰：請在下方「繪圖 API 設定」填入（只存在這個瀏覽器，不會寫進存檔）。新帳戶可到 platform.stability.ai 領 25 點免費額度。也可改用 Pollinations（免金鑰）或本機 ComfyUI。');
+ const model=(c.stabilityModel||'core').trim();const path={core:'/v2beta/stable-image/generate/core',sd3:'/v2beta/stable-image/generate/sd3',ultra:'/v2beta/stable-image/generate/ultra'}[model]||'/v2beta/stable-image/generate/core';
+ const fd=new FormData();fd.append('prompt',prompt);fd.append('output_format','png');fd.append('aspect_ratio','2:3');
+ const neg=(($('#img37Neg')||{}).value!=null?$('#img37Neg').value:(c.neg||NEG371));if(neg)fd.append('negative_prompt',neg);
+ const ctl=new AbortController();const tm=setTimeout(()=>ctl.abort(),180000);let r;
+ try{r=await fetch('https://api.stability.ai'+path,{method:'POST',headers:{Authorization:'Bearer '+key,Accept:'image/*'},body:fd,signal:ctl.signal})}
+ catch(e){throw imgApiErr371('stability',0,String(e.message||e),e.name==='AbortError'?'等待 Stability AI 逾時（3 分鐘）':'連不上 Stability AI。')}
+ finally{clearTimeout(tm)}
+ if(!r.ok){let raw='';try{raw=await r.text()}catch(e){}throw imgApiErr371('stability',r.status,raw)}
+ const data=await blobUrl371(await r.blob());return await fitPortrait371(data)}
+async function genByProv371(prov,id,o,ex,prompt,force){if(prov==='gemini')return genGemini37(prompt);if(prov==='comfy')return genComfyPortrait371(id,o,ex,prompt,force);
+ if(prov==='pollinations')return genPollinations371(prompt,force);if(prov==='stability')return genStability371(prompt);return genGPT37(prompt)}
+{const _g=genGemini37;genGemini37=async function(prompt){try{return await _g.apply(this,arguments)}catch(e){if(e&&e.html)throw e;const m=String(e&&e.message||e);throw imgApiErr371('gemini',+(m.match(/HTTP\s+(\d+)/)||[])[1]||0,m,m)}}}
+{const _g=genGPT37;genGPT37=async function(prompt){try{return await _g.apply(this,arguments)}catch(e){if(e&&e.html)throw e;const m=String(e&&e.message||e);throw imgApiErr371('openai',+(m.match(/HTTP\s+(\d+)/)||[])[1]||0,m,m)}}}
+{const _h=img37HTML;img37HTML=function(id){const c=img37();const prov=IMG37_PROV[c.prov]?c.prov:'gpt';const o=V37.imgSel[id+':o']||V37.prevOutfit[id]||outfitOf(id);const ex=V37.imgSel[id+':e']||'平靜';
+ const auto=buildPortraitPrompt37(id,o,ex);const cur=V37.imgPrompt[id]!=null?V37.imgPrompt[id]:auto;const hasArt=Object.keys(OUTFITS).some(k=>A['of:'+id+'/'+k])||(typeof psList==='function'&&psList(id).length);
+ const neg=c.neg!=null?c.neg:NEG371;const cc=typeof c37==='function'?c37():{};
+ const opts=IMG37_ORDER.filter(k=>IMG37_PROV[k]).map(k=>`<option value="${k}" ${k===prov?'selected':''}>${esc(IMG37_PROV[k])}</option>`).join('');
+ const extra=(prov==='comfy'||prov==='stability')?`<div id="img37Comfy" class="img37comfy">${prov==='comfy'?`<div class="note" style="margin-top:0">使用本機 ComfyUI（預設 ${esc(cc.url||'http://127.0.0.1:8000')}），不耗額度。模型清單來自本機 /object_info；連線設定在「設定 → 🎨 繪圖／ComfyUI」（🔌 測試連線）。</div>`:`<div class="note" style="margin-top:0">Stability AI 走你自己的金鑰，新帳戶有 25 點免費額度（Core 約 3 點／張）。金鑰只存在這個瀏覽器，不會寫進存檔。</div>`}
+  <label>負向提示詞</label><textarea id="img37Neg" rows="3">${esc(neg)}</textarea>
+  ${prov==='comfy'?`<div class="setgrid"><div><label>主模型（UNET／Qwen）</label><select id="img37Unet"><option>${esc(cc.unet||'')}</option></select></div><div><label>文字編碼器（CLIP）</label><select id="img37Clip"><option>${esc(cc.clip||'')}</option></select></div><div><label>VAE</label><select id="img37Vae"><option>${esc(cc.vae||'')}</option></select></div><div><label>Checkpoint（SD 範本）</label><select id="img37Ckpt"><option>${esc(cc.ckpt||'')}</option></select></div></div>
+  <div class="row"><button class="btn g sm" data-img37="reloadm">從 ComfyUI 重新讀取模型清單</button><button class="btn g sm" data-img37="comfyset">開啟連線設定</button><small id="img37ComfySt" class="note" style="margin:0"></small></div>`:''}</div>`:'';
+ return`<div class="img37"><h3>🎨 AI 生成立繪${hasArt?'':' <small class="chip">這個角色還沒有立繪</small>'}</h3>
+ <div class="row" style="flex-wrap:wrap;gap:8px;margin-top:0"><label>接口 <select id="img37Prov">${opts}</select></label>
+ <label>服裝 <select id="img37O">${Object.entries(OUTFITS).map(([k,v])=>`<option value="${k}" ${k===o?'selected':''}>${v}</option>`).join('')}</select></label>
+ <label>表情 <select id="img37E">${EXPR37.map(e=>`<option ${e===ex?'selected':''}>${e}</option>`).join('')}</select></label></div>
+ <label>提示詞（已依角色卡自動填好，可以直接修改）</label><textarea id="img37P" rows="7" data-auto="${esc(auto)}">${esc(cur)}</textarea>
+ ${extra}
+ <div class="row"><button class="btn g sm" data-img37="restore">↺ 還原自動提示詞</button>${prov==='brief'?'<button class="btn" data-img37="brief">📄 匯出繪圖需求</button>':'<button class="btn" data-img37="gen">🎨 生成 1 張</button>'}<small class="note" style="margin:0">${esc(img37Note371(prov))}</small></div>
+ <div id="img37R"></div>
+ <details class="img37cfg"><summary>繪圖 API 設定（只存在這個瀏覽器，不寫進存檔或角色卡）</summary>
+  <div class="setgrid"><div><label>GPT 金鑰（留空＝沿用 AI 連線的 OpenAI 金鑰）</label><input type="password" id="img37GK" value="${esc(c.gptKey)}" autocomplete="off"></div><div><label>GPT 模型</label><input type="text" id="img37GM" value="${esc(c.gptModel)}"></div>
+  <div><label>Gemini 金鑰（留空＝沿用 AI 連線的 Gemini 金鑰）</label><input type="password" id="img37MK" value="${esc(c.gemKey)}" autocomplete="off"></div><div><label>Gemini 模型（低消耗；畫圖通常需付費）</label><input type="text" id="img37MM" value="${esc(c.gemModel)}"></div>
+  <div><label>Stability AI 金鑰</label><input type="password" id="img37SK" value="${esc(c.stabilityKey||'')}" autocomplete="off"></div><div><label>Stability 模型</label><select id="img37SM"><option value="core" ${(c.stabilityModel||'core')==='core'?'selected':''}>Stable Image Core（3 點，建議）</option><option value="sd3" ${c.stabilityModel==='sd3'?'selected':''}>Stable Diffusion 3.5</option><option value="ultra" ${c.stabilityModel==='ultra'?'selected':''}>Stable Image Ultra（8 點）</option></select></div></div>
+  <div class="note">Pollinations 不需要金鑰。所有金鑰只存在這個瀏覽器（lunaria_img37），不會寫進存檔、角色卡或匯出檔。</div>
+  <div class="row"><button class="btn g sm" data-img37="savecfg">儲存繪圖設定</button></div></details></div>`}}
+{const _ir=img37Refresh;img37Refresh=function(){const r=_ir.apply(this,arguments);try{if(img37().prov==='comfy')fillComfyModels371()}catch(e){}return r}}
+{const _os=openSheet;openSheet=function(id,tab){const r=_os.apply(this,arguments);try{if((tab||(typeof CS_TAB!=='undefined'&&CS_TAB))==='por'&&img37().prov==='comfy')fillComfyModels371()}catch(e){}return r}}
+document.addEventListener('input',e=>{const t=e.target;if(!t)return;if(t.id==='img37Neg')img37().neg=t.value});
+document.addEventListener('click',async e=>{const b=e.target.closest&&e.target.closest('[data-img37]');if(!b)return;const a=b.dataset.img37;
+ if(a==='reloadm'){e.preventDefault();try{await fillComfyModels371();toast('已重新讀取模型清單')}catch(er){toast('讀取失敗：'+(er.message||er))}return}
+ if(a==='comfyset'){e.preventDefault();try{openSettings('draw37')}catch(er){}return}
+ if(a==='savecfg'){const c=img37();if($('#img37SK'))c.stabilityKey=$('#img37SK').value.trim();if($('#img37SM'))c.stabilityModel=$('#img37SM').value.trim()||'core';try{img37Save()}catch(er){}}},true);
+
+try{NEWS34.push('🧩 v3.7.1：OOC 會真的換裝、叫人過來、同行、給道具、換場景、跳時間；私下空間的 OOC 按鈕會走進指令模式；對話裡換裝或帶路也會同步立繪與場景；金鑰餘額不足會正確提示。立繪接口新增本機 ComfyUI（免費）與已驗證的免費／免費額度畫圖服務；畫圖錯誤改為中文並附原始訊息。')}catch(e){}
+try{if(typeof BUILD_VERSION==='string'){/* version set in reset.js */}}catch(e){}
+
 
 /* v3.3：手機版——側欄改成抽屜；點遮罩或選了項目就收起 */
 (function(){const tb=$('#topbar');if(!tb)return;
