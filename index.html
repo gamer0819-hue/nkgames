@@ -1905,7 +1905,7 @@ function rebuildWorld(){
   MOODS[id]=['平靜','開心','好奇'];MOOD_ACT[id]={};ACT[id]={[home]:[`${r.card.name}在${LOCS[home].name}忙著自己的事。`]};
   POOLS[id]=poolFor(r);if(!A['p_'+id]){A['p_'+id]=SIL;A['a_'+id]=SIL}
   if(S&&!S.chars[id])S.chars[id]={loc:home,mood:'平靜',aff:15,mem:[],goal:CHARS[id].goals[0],invite:null};}
- if(S){const _kn=l=>LOCS[l]||(typeof wmKnown==='function'&&wmKnown(l));for(const[c,x]of Object.entries(S.chars))if(!_kn(x.loc))x.loc='tavern';if(!_kn(S.loc))S.loc='tavern';if(S.talk&&!CHARS[S.talk])S.talk=null;if(S.active&&!CHARS[S.active])S.active=null;try{renderAll()}catch(e){}}
+ if(S){const _kn=l=>LOCS[l]||(typeof wmKnown==='function'&&wmKnown(l));const _rc=l=>(typeof recoverLoc372==='function'&&recoverLoc372(l))||'tavern';for(const[c,x]of Object.entries(S.chars))if(!_kn(x.loc))x.loc=_rc(x.loc);if(!_kn(S.loc))S.loc=_rc(S.loc);if(S.talk&&!CHARS[S.talk])S.talk=null;if(S.active&&!CHARS[S.active])S.active=null;try{renderAll()}catch(e){}}
 }
 function asDialog(t){t=String(t||'').replace(/\*([^*]+)\*/g,'$1').replace(/"([^"]+)"|“([^”]+)”/g,(m,a,b)=>`「${a||b}」`).trim();if(t.length>220)t=t.slice(0,220)+'…';return t}
 function poolFor(r){const n=r.card.name,L=r.lines||{};const g=[r.greeting,...(r.card.alternate_greetings||[])].filter(Boolean).map(asDialog);
@@ -4555,7 +4555,7 @@ function wmSync(){if(!M||!S)return;
  wmApplyGenre();wmSyncTown();
  for(const p of M.places)if(!p.home&&!p.inner&&!p.rumor)wmEnsureLoc(p);
  for(const[k,w]of Object.entries(S.wild||{}))if(!LOCS[k])wildLoc(k,w);
- if(!LOCS[S.loc]){console.warn('找不到地點',S.loc,'，回到灰石鎮');S.loc='market'}
+ if(!LOCS[S.loc]){const rk=typeof recoverLoc372==='function'?recoverLoc372(S.loc):null;if(rk){S.loc=rk}else{console.warn('找不到地點',S.loc,'，回到灰石鎮');S.loc='market'}}
  const night=S.slot>=3;if(M.isNight!==night)M.setNight(night);
  const pn=partyList().map(nm);if(pn.join()!==M.party.join())M.setParty(pn);
  const pos=wmPosOf(S.loc);const ox=M.player.x,oy=M.player.y,dd=Math.hypot(pos.x-ox,pos.y-oy);if(dd>.01){const far=LOCS[S.loc].far;M.setPlayer(pos.x,pos.y,true);if(!far)M.reveal(pos.x,pos.y,3);else{if(S.__wmOK&&dd>1.5&&dd<400){const n=Math.ceil(dd);for(let i=1;i<n;i++)M.reveal(ox+(pos.x-ox)*i/n,oy+(pos.y-oy)*i/n,1.2)}M.reveal(pos.x,pos.y,3.5)}}}
@@ -9591,6 +9591,21 @@ function paintMapArtCfg372(){const box=typeof $==='function'?$('#mapArtCfg [data
 {const _os=typeof openSettings==='function'?openSettings:null;if(_os)openSettings=function(tab,focus){const r=_os.apply(this,arguments);try{if(tab==='map')paintMapArtCfg372()}catch(e){}return r}}
 // 私下空間輸入框：打字時自動長高（76px～200px）
 document.addEventListener('input',e=>{const t=e.target;if(t&&t.id==='pv35Inp'){t.style.height='auto';t.style.height=Math.min(200,Math.max(76,t.scrollHeight+2))+'px'}});
+// 冒險中突然回到起點：存檔／重新整理／載入知識書時，地圖重建會暫時清掉自訂房間、公會分部等子地點，
+// 舊程式找不到目前地點就直接送回灰石鎮。改成先把子地點補回來，補不回就回到所在城鎮，再不行才用最後一次的正常位置。
+function recoverLoc372(k){try{if(!k||!S)return null;if(LOCS[k])return k;
+ const A0=S.atlas;const c=A0&&(A0.custom||[]).find(x=>x&&x.key===k);
+ if(c&&c.level==='room'&&typeof areaLoc==='function'){const bk=areaLoc(c.area);const base=bk&&LOCS[bk];
+  if(base){LOCS[k]={name:c.name,icon:'🚪',x:-10,y:-10,far:true,wm:base.wm,area:c.area,room:k,sub:true,role:base.role,indoor:true,img:base.img,desc:[c.desc||`${base.name}的${c.name}。`],mood:base.mood,visited:true};
+   try{LOC_AFF[k]=[];LOC_CHOICES[k]={d:[`回到${base.name}街上`],n:[]}}catch(e){}return k}
+  if(bk&&LOCS[bk])return bk}
+ if(typeof wmKnown==='function'&&wmKnown(k))return k;
+ const g=String(k).match(/^(.+?)_(g|s\d+)$/);if(g&&LOCS[g[1]])return g[1];
+ const L=S._lastOK372;if(L){if(L.loc&&LOCS[L.loc])return L.loc;if(L.area&&typeof areaLoc==='function'){const a=areaLoc(L.area);if(a&&LOCS[a])return a}}
+ }catch(e){}return null}
+// 每次畫面更新時記下最後一個正常的位置（存進存檔，供上面備援用）
+{const _ra=typeof renderAll==='function'?renderAll:null;if(_ra)renderAll=function(){try{if(S&&S.loc&&LOCS[S.loc]){const l=LOCS[S.loc];const ar=typeof areaOfLoc==='function'?areaOfLoc(S.loc):null;
+  S._lastOK372={loc:S.loc,area:ar||(l.area||l.wm||null)}}}catch(e){}return _ra.apply(this,arguments)}}
 
 /* v3.3：手機版——側欄改成抽屜；點遮罩或選了項目就收起 */
 (function(){const tb=$('#topbar');if(!tb)return;
