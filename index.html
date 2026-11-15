@@ -8997,7 +8997,7 @@ function glossMap372(){if(V372._gm)return V372._gm;const m={};
  [EN_RACE372,EN_JOB372,EN_EXPR372,EN_BODY372].forEach(function(d){if(!d)return;Object.keys(d).forEach(function(zh){String(d[zh]||'').split(',').forEach(function(en){en=en.trim();if(en&&!m[en.toLowerCase()])m[en.toLowerCase()]=zh})})});
  Object.keys(EN_OUTFIT_TAGS372||{}).forEach(function(k){(EN_OUTFIT_TAGS372[k]||[]).forEach(function(en){if(en&&!m[en.toLowerCase()]&&GLOSS372[en])m[en.toLowerCase()]=GLOSS372[en]})});
  V372._gm=m;return m}
-function glossEn372(tag){const t=String(tag||'').trim();if(!t)return'';const hit=glossMap372()[t.toLowerCase()];if(hit)return hit;
+function glossEn372(tag){const t=String(tag||'').trim();if(!t)return'';const hit=glossMap372()[t.toLowerCase()];if(hit)return hit;{const cu=customGloss372()[t.toLowerCase()];if(cu)return cu;const lb=TAGLIB_ZH372()[t.toLowerCase()];if(lb)return lb}
  if(/^in (her|his|their) early twenties$/i.test(t))return'二十出頭';
  if(/^in (her|his|their) early thirties$/i.test(t))return'三十出頭';
  if(/^in (her|his|their) forties$/i.test(t))return'四十多歲';
@@ -9093,7 +9093,7 @@ async function maybeEnhancePrompt372(){try{if(promptLang372()!=='en')return;cons
     const ai='<label class="sw img37lookai"><input type="checkbox" id="img37LookAI" '+(c.lookAI?'checked':'')+'> 有文字 AI 時，把外貌譯成英文標籤</label>';
     const parts=buildPortraitPromptEnParts372(id,o,ex);V372.glossParts=parts;
     const posG=glossGroupsToRows372(parts.groups);
-    const posHTML=ai+glossTableHTML372('img37GlossPos',posG);
+    const posHTML=ai+(typeof tagToolsHTML372==='function'?tagToolsHTML372():'')+glossTableHTML372('img37GlossPos',posG);
     if(s.indexOf('id="img37GlossPos"')<0)s=s.replace(/<textarea id="img37P"[^>]*>[\s\S]*?<\/textarea>/,function(m){return m+posHTML})}
   const neu=img37Neg372();
   const oldN=typeof NEG371==='string'?NEG371:'';
@@ -9621,6 +9621,49 @@ function recoverLoc372(k){try{if(!k||!S)return null;if(LOCS[k])return k;
 // 每次畫面更新時記下最後一個正常的位置（存進存檔，供上面備援用）
 {const _ra=typeof renderAll==='function'?renderAll:null;if(_ra)renderAll=function(){try{if(S&&S.loc&&LOCS[S.loc]){const l=LOCS[S.loc];const ar=typeof areaOfLoc==='function'?areaOfLoc(S.loc):null;
   S._lastOK372={loc:S.loc,area:ar||(l.area||l.wm||null)}}}catch(e){}return _ra.apply(this,arguments)}}
+
+/* ---------- 立繪提示詞：推薦詞下拉選單＋自訂中文→英文標籤（Neil 2026-11-16） ---------- */
+const TAGLIB372={
+ '盔甲':[['leather armor','皮甲'],['studded leather armor','鉚釘皮甲'],['chainmail','鎖子甲'],['scale armor','鱗甲'],['steel breastplate','鋼製胸甲'],['full plate armor','全身板甲'],['ornate silver armor','華麗銀甲'],['pauldrons','護肩'],['leather pauldron','皮革護肩'],['gauntlets','金屬護手'],['leather bracers','皮護腕'],['greaves','護脛'],['armored boots','鐵靴']],
+ '披風與外衣':[['long red cloak','紅色長披風'],['dark hooded cloak','深色連帽斗篷'],['fur-lined cloak','毛邊披風'],['traveling cape','旅行短披風'],['long coat','長大衣'],['tabard with crest','紋章罩袍'],['mage robe','法師長袍'],['priest vestments','神官法衣']],
+ '武器':[['longsword at the hip','腰間長劍'],['sword on back','背著劍'],['dagger at the belt','腰間匕首'],['twin daggers','雙匕首'],['longbow on back','背著長弓'],['crossbow','十字弓'],['spear','長槍'],['battle axe','戰斧'],['war hammer','戰鎚'],['wooden staff','木杖'],['magic staff with crystal','水晶法杖'],['round wooden shield','圓木盾'],['kite shield','鳶形盾']],
+ '服裝':[['white linen shirt','白色亞麻襯衫'],['laced corset vest','綁帶馬甲'],['long skirt','長裙'],['trousers','長褲'],['adventurer outfit','冒險者服裝'],['noble dress','貴族禮服'],['simple peasant dress','樸素村婦裙'],['nightgown','睡袍'],['apron','圍裙'],['leather belt with pouches','皮帶與小包']],
+ '飾品':[['silver earrings','銀耳環'],['pendant necklace','墜飾項鍊'],['circlet','頭環'],['hair ribbon','髮帶'],['leather gloves','皮手套'],['satchel bag','斜背包'],['flower hair ornament','花朵髮飾']],
+ '髮型':[['long straight hair','長直髮'],['wavy hair','波浪髮'],['ponytail','馬尾'],['twin braids','雙辮'],['short bob hair','短髮鮑伯頭'],['messy hair','凌亂髮型'],['hair bun','盤髮髻'],['side braid','側編辮']],
+ '姿勢':[['hand on hip','手插腰'],['arms crossed','雙手抱胸'],['holding sword','手持長劍'],['casting spell','施法中'],['waving hand','揮手'],['looking over shoulder','回頭看'],['sitting','坐姿'],['three-quarter view','四分之三側面'],['dynamic pose','動態姿勢']],
+ '表情':[['gentle smile','溫柔微笑'],['confident smirk','自信淺笑'],['determined expression','堅定神情'],['surprised','驚訝'],['angry','生氣'],['sad','難過'],['embarrassed blush','害羞臉紅']],
+ '光線與構圖':[['soft rim light','柔和輪廓光'],['warm candlelight','溫暖燭光'],['moonlight','月光'],['dramatic lighting','戲劇性光影'],['upper body portrait','半身像'],['full body portrait','全身像'],['cowboy shot','七分身']],
+ '背景':[['plain white background','純白背景'],['simple background','簡單背景'],['tavern interior background','酒館室內'],['forest background','森林背景'],['castle hall background','城堡大廳'],['night town street','夜晚街道']]
+};
+function TAGLIB_ZH372(){if(V372._tlz)return V372._tlz;const m={};Object.keys(TAGLIB372).forEach(g=>TAGLIB372[g].forEach(([en,zh])=>{m[en.toLowerCase()]=zh}));return V372._tlz=m}
+function customGloss372(){if(V372._cg)return V372._cg;try{V372._cg=JSON.parse(localStorage.getItem('moon_gloss_custom372')||'{}')||{}}catch(e){V372._cg={}}return V372._cg}
+function saveCustomGloss372(pairs){const m=customGloss372();pairs.forEach(([en,zh])=>{if(en&&zh)m[String(en).toLowerCase()]=String(zh)});try{localStorage.setItem('moon_gloss_custom372',JSON.stringify(m))}catch(e){}V372._gm=null}
+function tagToolsHTML372(){const e=typeof esc==='function'?esc:x=>x;
+ const opts=Object.keys(TAGLIB372).map(g=>`<optgroup label="${e(g)}">`+TAGLIB372[g].map(([en,zh])=>`<option value="${e(en)}">${e(zh)}（${e(en)}）</option>`).join('')+'</optgroup>').join('');
+ return `<div class="tagtools372" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:6px 0">
+  <label style="margin:0">➕ 推薦詞 <select id="img37TagSel"><option value="">選一個加進提示詞…</option>${opts}</select></label>
+  <input id="img37TrIn" placeholder="自訂裝備／服裝（中文），例如：黑色皮革護肩、紅色長披風" style="flex:1 1 240px;min-width:0">
+  <button class="btn sm" id="img37TrBtn" type="button">生成並加入</button>
+  <span id="img37TrMsg" class="hint" style="font-size:12px;opacity:.8"></span></div>`}
+function addTagsToPrompt372(tags){const ta=$('#img37P');if(!ta||!tags.length)return 0;const cur=splitTags372(ta.value);const low=cur.map(x=>x.toLowerCase());const add=tags.filter(t=>t&&!low.includes(t.toLowerCase()));if(!add.length)return 0;
+ const v=String(ta.value).trim().replace(/[,，]\s*$/,'');ta.value=(v?v+', ':'')+add.join(', ');ta.dispatchEvent(new Event('input',{bubbles:true}));try{paintGloss372()}catch(e){}return add.length}
+function zhLookup372(zh){const out=[];const rev={};const put=(en,z)=>{if(z&&!rev[z])rev[z]=en};
+ Object.entries(TAGLIB_ZH372()).forEach(([en,z])=>put(en,z));Object.entries(customGloss372()).forEach(([en,z])=>put(en,z));try{Object.entries(glossMap372()).forEach(([en,z])=>put(en,z))}catch(e){}
+ String(zh).split(/[、，,；;\n]+/).map(x=>x.trim()).filter(Boolean).forEach(p=>{if(rev[p])out.push([rev[p],p])});return out}
+async function translateTags372(zh){
+ if(typeof callModel==='function'&&typeof canLive==='function'&&canLive()){
+  const sys='You convert Traditional Chinese descriptions of fantasy character clothing, equipment, hair, poses or scenery into concise English image-generation tags (Danbooru/Stable Diffusion style, lowercase, 1-5 words each, medieval fantasy, no nudity). Output ONLY lines in the form: english tag | 繁體中文註解 . One tag per line, nothing else.';
+  const r=String(await callModel([{role:'system',content:sys},{role:'user',content:zh}],{})||'');
+  const pairs=r.split(/\n+/).map(l=>l.replace(/^[\s\-\*\d\.]+/,'').split('|').map(x=>x.trim())).filter(a=>a[0]&&/^[a-z0-9 ,'\-()]+$/i.test(a[0])).map(a=>[a[0].toLowerCase().replace(/,+$/,''),a[1]||zh]);
+  if(pairs.length)return pairs}
+ return zhLookup372(zh)}
+document.addEventListener('change',e=>{const t=e.target;if(t&&t.id==='img37TagSel'&&t.value){const n=addTagsToPrompt372([t.value]);const m=$('#img37TrMsg');if(m)m.textContent=n?'已加入：'+t.value:'提示詞裡已經有了';t.value=''}});
+document.addEventListener('click',async e=>{const b=e.target.closest&&e.target.closest('#img37TrBtn');if(!b)return;e.preventDefault();const inp=$('#img37TrIn'),m=$('#img37TrMsg');const zh=(inp&&inp.value||'').trim();if(!zh){if(m)m.textContent='先輸入想要的裝備或服裝';return}
+ b.disabled=true;if(m)m.textContent='翻譯中…';
+ try{const pairs=await translateTags372(zh);if(!pairs.length){if(m)m.textContent='沒有連線文字 AI，詞庫也找不到；請接上文字 AI，或直接在提示詞裡打英文';return}
+  saveCustomGloss372(pairs);const n=addTagsToPrompt372(pairs.map(p=>p[0]));if(m)m.textContent=n?'已加入：'+pairs.map(p=>p[0]+'（'+p[1]+'）').join('、'):'提示詞裡已經有了';if(inp)inp.value=''}
+ catch(err){if(m)m.textContent='翻譯失敗：'+(err&&err.message||err)}finally{b.disabled=false}});
+document.addEventListener('keydown',e=>{if(e.target&&e.target.id==='img37TrIn'&&e.key==='Enter'&&!e.isComposing){e.preventDefault();const b=$('#img37TrBtn');if(b)b.click()}});
 
 /* v3.3：手機版——側欄改成抽屜；點遮罩或選了項目就收起 */
 (function(){const tb=$('#topbar');if(!tb)return;
