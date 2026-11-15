@@ -747,6 +747,34 @@ a.keyget372{color:var(--gold);text-decoration:underline;text-underline-offset:2p
 .img37gloss tr.gh372 th{color:var(--mut);font-weight:600;padding-top:.45em;background:rgba(230,182,92,.08)}
 .img37gloss td:first-child{font-family:ui-monospace,monospace;color:#e8e0d4;width:55%}
 .img37gloss .cust372{color:var(--mut)}
+
+/* 私下空間輸入列：對象／多人控制可換到上一行，輸入框保持可寫寬度 */
+.pv35-in{flex-wrap:wrap;align-items:stretch}
+#pv35 .pv35tgt372{display:flex;flex-wrap:wrap;align-items:center;gap:6px;flex:1 1 auto;min-width:0;max-width:100%;width:auto;margin:0}
+#pv35 .pv35-in #pvGrp372,#pv35 .pv35-in .grp372pv{width:auto;max-width:100%;margin:0;flex:1 1 auto}
+#pv35 .pv35row372{display:flex;align-items:stretch;gap:6px;flex:1 1 180px;min-width:min(180px,100%);width:auto}
+#pv35 .pv35-in #pv35Inp,#pv35 .pv35row372 #pv35Inp{flex:1 1 180px;min-width:min(180px,100%)}
+#pv35 .pv35-in #pv35Send,#pv35 .pv35row372 #pv35Send{flex:0 0 auto}
+#pv35 .pv35-in #pv35Ooc,#pv35 .pv35-in #pv35To{flex:0 1 auto}
+#pv35 .pv35-log{bottom:126px}
+@media (max-width:760px){
+  #pv35 .pv35tgt372{flex-basis:100%;width:100%}
+  #pv35 .pv35row372{flex-basis:100%;min-width:0;width:100%}
+  #pv35 .pv35-in #pv35Inp,#pv35 .pv35row372 #pv35Inp{min-width:min(180px,100%)}
+  #pv35 .pv35-log{bottom:150px;max-height:30vh}
+  #pv35 .pv35-stage{bottom:210px}
+}
+
+/* 立繪種子／鎖臉／出圖模式 */
+.img37por372{width:100%;margin:.35em 0 .2em}
+.img37por372 .row{flex-wrap:wrap;gap:8px;align-items:center;margin:.25em 0}
+.img37por372 label{display:inline-flex;align-items:center;gap:4px}
+.img37por372 input[type=number]{width:8.5em;background:#1b1420;color:var(--gold2);border:1px solid rgba(230,182,92,.45);border-radius:8px;padding:4px 6px}
+.img37por372 select{background:#1b1420;color:var(--gold2);border:1px solid rgba(230,182,92,.45);border-radius:8px;padding:4px 6px}
+.img37refth372{display:inline-flex;align-items:center;vertical-align:middle}
+.img37refth372 img{height:48px;width:auto;max-width:48px;object-fit:cover;border-radius:6px;border:1px solid rgba(230,182,92,.45);background:#1b1420}
+.img37hint372{color:#ffe0a0}
+.img37usedseed{font-family:ui-monospace,monospace}
 </style></head><body>
 <div id="app">
  <aside id="nav">
@@ -6954,13 +6982,13 @@ async function privSend35(textArg,toArg){if(!PR35||PBUSY35)return;const inp=$('#
  for(const st of r.stats){const id=resolveChar(st.who);if(id&&PR35.who.includes(id)){S.chars[id].aff=Math.max(0,Math.min(100,(S.chars[id].aff||0)+Math.max(-3,Math.min(3,st.d))))}}
  PR35.min+=6;PBUSY35=false;$('#pv35Send')&&($('#pv35Send').disabled=false);renderPriv35();if(tts35().on&&tts35().auto)TTS35.speakSegs(r.segs);autosave();return msg}
 function addPrivMem35(c,text){const P=sPriv35();(P.mem[c]=P.mem[c]||[]).push({day:S.day,slot:S.slot,room:PR35?PR35.name:'',text});P.mem[c]=P.mem[c].slice(-30)}
-async function privLeave35(){if(!PR35)return;const P=PR35;TTS35.stop();const talk=P.hist.filter(m=>m.role==='user'||m.role==='ai');let sum='';
+async function privLeave35(){if(!PR35)return;const P=PR35;TTS35.stop();PR35=null;try{sPriv35().cur=null;renderPriv35()}catch(e){}try{toast('正在整理這段私下時光…')}catch(e){}const talk=P.hist.filter(m=>m.role==='user'||m.role==='ai');let sum='';
  const plain=P.hist.map(m=>m.role==='user'?`${S.meta.player}：${m.text}`:m.role==='ai'?m.segs.map(s=>(s.who?nm(s.who)+'：':'')+s.text).join(' '):'').filter(Boolean).join('\n').slice(-2400);
  if(talk.length&&CFG.mode==='live'&&canLive()){try{sum=String(await callModel([{role:'system',content:'你是冒險紀錄員。請用繁體中文寫一句 30 到 70 字的摘要，記下這段私下相處發生了什麼、氣氛如何。只寫事實，不加標籤。【私下摘要】'},{role:'user',content:plain}],{})).replace(/<[^>]*>/g,'').trim().slice(0,120)}catch(e){sum=''}}
  if(!sum){const lastU=P.hist.filter(m=>m.role==='user').slice(-1)[0];sum=talk.length?`在${P.name}私下聊了大約 ${Math.max(5,P.min)} 分鐘${lastU?`，最後聊到「${lastU.text.slice(0,16)}」`:''}。`:`在${P.name}待了一會兒。`}
  const names=P.who.map(nm).join('、');for(const c of P.who){addPrivMem35(c,sum);try{memPush(c,`和${S.meta.player}在${P.name}私下相處：${sum}`,'private',3,'self')}catch(e){}}
  sPriv35().log.unshift({day:S.day,slot:S.slot,loc:P.loc,room:P.name,who:P.who.slice(),text:sum,min:P.min});sPriv35().log=sPriv35().log.slice(0,20);
- PR35=null;sPriv35().cur=null;renderPriv35();
+ sPriv35().cur=null;
  if(P.min>0){try{await passTime(P.min,false)}catch(e){}}
  syncParty();for(const c of P.who){const x=S.chars[c];if(!x)continue;if(inParty(c))x.loc=S.loc;else{x.loc=S.loc;x.stay={loc:S.loc,until:tsNow()+1}}}
  pushMsg({role:'sys',text:`【🚪 私下時光｜${P.name}・${names}】${sum}`});renderAll();autosave();return sum}
@@ -7620,7 +7648,10 @@ async function c37Pump(){if(C37Q.busy)return;const job=C37Q.list.find(j=>j.state
  finally{C37Q.busy=false;C37Q.cur=null;C37Q.list=C37Q.list.filter(j=>j!==job);setTimeout(c37UI,job.state==='fail'&&!job.cancel?8000:1200);
   if(c37().freeAfter&&job.state==='done'&&!job.cached){try{await c37Fetch('/free',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({unload_models:true,free_memory:true})})}catch(e){}}
   setTimeout(c37Pump,50)}}
-async function c37Upload(dataURL,i){const b=await (await fetch(dataURL)).blob();const fd=new FormData();fd.append('image',b,`moonshadow_ref_${hstr(dataURL).toString(36)}_${i}.png`);fd.append('type','input');fd.append('overwrite','false');
+async function c37PngBlob(dataURL){const b=await (await fetch(dataURL)).blob();if(b.type==='image/png')return b;
+ try{const bm=await createImageBitmap(b);const c=document.createElement('canvas');c.width=bm.width;c.height=bm.height;c.getContext('2d').drawImage(bm,0,0);
+  const pb=await new Promise(r=>c.toBlob(r,'image/png'));if(pb)return pb}catch(e){}return b}
+async function c37Upload(dataURL,i){const b=await c37PngBlob(dataURL);const fd=new FormData();fd.append('image',b,`moonshadow_ref_${hstr(dataURL).toString(36)}_${i}.png`);fd.append('type','input');fd.append('overwrite','false');
  const r=await c37Fetch('/upload/image',{method:'POST',body:fd},{timeout:30000});if(!r.ok)throw new Error('參考圖上傳失敗（HTTP '+r.status+'）');const j=await r.json();return(j.subfolder?j.subfolder+'/':'')+j.name}
 async function c37Exec(job){const c=c37();const q=job.req;const p={kind:q.kind||'img',prompt:q.prompt,negative:q.negative||'',seed:q.seed!=null?q.seed:Math.floor(Math.random()*1e9),w:q.w||c.res,h:q.h||c.res,refs:[]};
  for(let i=0;i<Math.min((q.refs||[]).length,(c.tpl==='qwen21'&&!c.enc)||c.tpl==='sd'?0:Math.min(2,+c.maxRef||0));i++)p.refs.push(await c37Upload(q.refs[i],i));
@@ -8550,7 +8581,7 @@ function pvGrpChips372(){try{if(typeof PR35==='undefined'||!PR35)return;const bo
  let d=$('#pvGrp372');if(!d){d=document.createElement('div');d.id='pvGrp372';d.className='grp372pv';$('#pv35To').insertAdjacentElement('afterend',d)}
  const g=grpList372();const h=PR35.who||[];
  d.innerHTML=`<span class="g372lab">多人</span>`+h.map(c=>`<label class="gchip ${g.includes(c)?'on':''}" style="--c:${CHARS[c].color||'#e6b65c'}"><input type="checkbox" data-pvgrp372="${c}" ${g.includes(c)?'checked':''}><span class="a" style="${A['a_'+c]?`background-image:url(${A['a_'+c]})`:''}"></span>${esc(nm(c))}</label>`).join('')+(g.length>=2?`<span class="g372hint">對 ${esc(grpLabel372(g))} 說</span>`:'');
- if(g.length>=2&&$('#pv35To')){if(![...$('#pv35To').options].some(o=>o.value==='__grp__'))$('#pv35To').insertAdjacentHTML('afterbegin',`<option value="__grp__">對 ${esc(grpLabel372(g))}</option>`);$('#pv35To').value='__grp__'}}catch(e){}}
+ if(g.length>=2&&$('#pv35To')){if(![...$('#pv35To').options].some(o=>o.value==='__grp__'))$('#pv35To').insertAdjacentHTML('afterbegin',`<option value="__grp__">對 ${esc(grpLabel372(g))}</option>`);$('#pv35To').value='__grp__'}try{pvInLayout372()}catch(x){}}catch(e){}}
 document.addEventListener('change',e=>{const t=e.target;if(t&&t.dataset&&t.dataset.pvgrp372){grpToggle372(t.dataset.pvgrp372);pvGrpChips372()}});
 {const _rp=typeof renderPriv35==='function'?renderPriv35:null;if(_rp)renderPriv35=function(){const r=_rp.apply(this,arguments);try{pvGrpChips372();const spk=grpSpkNow372();if(spk)highlightSpk372(spk)}catch(e){}return r}}
 {const _ps=typeof privSystem35==='function'?privSystem35:null;if(_ps)privSystem35=function(intent){const s=_ps.apply(this,arguments);try{const g=grpList372();if(g.length>=2){const names=grpLabel372(g);return s+`\n\n【本輪：對${names}說話（指定的多人對話）】請讓 ${names} 每一位都用自己的 <speaker name> 依個性回應，可以互相接話；沒被選到的在場角色不要搶話。`} }catch(e){}return s}}
@@ -8623,12 +8654,153 @@ async function c37DetectEnc372(){if(typeof c37!=='function'||typeof c37ObjInfo!=
   if(enc==='TextEncodeQwenImage21'&&!c.encIn.res)c.encIn.res='resolution';
   c.qwen21Official372=c37OfficialQwen21_372(c)}
  return c}
+/* ---------- 立繪出圖：只許用該角色自己的圖、種子可調、模式 A/B／畫風 ---------- */
+function isSil372(v){if(!v)return true;if(typeof SIL==='string'&&v===SIL)return true;return /^data:image\/svg/.test(String(v))&&/尚無立繪/.test(String(v))}
+function isPlayerArtKey372(k){k=String(k||'');return k==='of:me/default'||k.indexOf('of:me/')===0||k.indexOf('of:player/')===0}
+function isOwnArtKey372(id,k){if(!id||!k||typeof A==='undefined'||!A[k]||isSil372(A[k]))return false;
+ if(isPlayerArtKey372(k))return id==='me';
+ if(String(k).indexOf('of:'+id+'/')===0)return true;
+ if(k==='p_'+id||k==='a_'+id)return true;
+ if(String(k).indexOf('ps:')===0){try{return !!(typeof psList==='function'&&psList(id).some(p=>'ps:'+p.id===k))}catch(e){return false}}
+ try{const D=CHARS[id];if(D&&D.expr)return Object.values(D.expr).indexOf(k)>=0}catch(e){}
+ return false}
+function ownPortraits372(id,o){const keys=[],seen={};const add=k=>{if(!k||seen[k]||!isOwnArtKey372(id,k))return;seen[k]=1;keys.push({key:k,url:A[k]})};
+ if(o){add('of:'+id+'/'+o);try{if(typeof outfitArtKey==='function')add(outfitArtKey(id,o))}catch(e){}}
+ try{Object.keys(OUTFITS||{}).forEach(k=>add('of:'+id+'/'+k))}catch(e){}
+ add('of:'+id+'/default');add('p_'+id);
+ try{(typeof psList==='function'?psList(id):[]).forEach(p=>{if(p.def)add('ps:'+p.id)});(typeof psList==='function'?psList(id):[]).forEach(p=>add('ps:'+p.id))}catch(e){}
+ return keys}
+function hasOwnPortrait372(id){return ownPortraits372(id).length>0}
+function styleRefs372(){const out=[],seen={};const add=(k,label)=>{if(!k||seen[k]||typeof A==='undefined'||!A[k]||isSil372(A[k]))return;if(isPlayerArtKey372(k)||/^(of:|p_|a_|ps:|pose:)/.test(k))return;seen[k]=1;out.push({key:k,url:A[k],label:label||k})};
+ try{const loc=LOCS[S.loc]||{};let k=loc.img;if(typeof k==='function')k=k();add(k,(loc.name||'')+'場景')}catch(e){}
+ try{Object.keys(A).forEach(k=>{if(k.indexOf('w:')===0)add(k,k.slice(2))})}catch(e){}
+ return out}
+function portraitRefsForGen372(id,o,opt){opt=opt||{};const mode=opt.mode||(opt.style?'style':opt.lock?'edit':'new');
+ if(mode==='style')return styleRefs372().slice(0,1);if(mode!=='edit'&&mode!=='A')return [];return ownPortraits372(id,o)}
+function defaultPorMode372(id){return hasOwnPortrait372(id)?'edit':'new'}
+function porMode372(){const el=typeof $==='function'?$('#img37Mode'):null;if(el&&el.value)return el.value;const c=typeof img37==='function'?img37():{};return c.porMode||'new'}
+function scaleDims372(w,h,target,align){target=target||(768*768);align=align||32;w=+w||768;h=+h||1152;const s=Math.sqrt(target/(w*h));
+ return{w:Math.max(align,Math.round(w*s/align)*align),h:Math.max(align,Math.round(h*s/align)*align)}}
+async function scalePortraitRef372(url){const im=await (typeof loadImg==='function'?loadImg(url):new Promise((rs,rj)=>{const i=new Image();i.onload=()=>rs(i);i.onerror=rj;i.src=url}));
+ const d=scaleDims372(im.width,im.height);const c=document.createElement('canvas');c.width=d.w;c.height=d.h;c.getContext('2d').drawImage(im,0,0,d.w,d.h);
+ return{url:c.toDataURL('image/png'),w:d.w,h:d.h}}
+function faceMaskBox372(key,w,h){const F=typeof FACE36==='object'&&key&&FACE36[key];const sx=w/864,sy=h/1152;
+ if(F&&Array.isArray(F.head)){const cx=F.head[0]*sx,cy=F.head[1]*sy;let eyeW=Math.min(w,h)*0.28;
+  if(F.eyes&&F.eyes[0]&&F.eyes[1]){const a=F.eyes[0],b=F.eyes[1];const left=Math.min(a[0],b[0])*sx,right=Math.max(a[2]!=null?a[2]:a[0],b[2]!=null?b[2]:b[0])*sx;eyeW=Math.max(24,right-left)}
+  let browY=cy,mouthY=cy;if(F.brows)browY=Math.min(F.brows[1],F.brows[3]!=null?F.brows[3]:F.brows[1])*sy;
+  if(F.mouth)mouthY=Math.max(F.mouth[1],F.mouth[3]!=null?F.mouth[3]:F.mouth[1])*sy;
+  const rx=eyeW*1.15,top=Math.max(0,browY-eyeW*0.85),bot=Math.min(h,mouthY+eyeW*0.7),ry=Math.max(16,(bot-top)/2);
+  return{cx,cy:top+ry,rx,ry,feather:16}}
+ return{cx:w/2,cy:h*0.22,rx:w*0.22,ry:h*0.16,feather:16}}
+function drawFaceMask372(w,h,box){box=box||faceMaskBox372(null,w,h);const c=document.createElement('canvas');c.width=w;c.height=h;const g=c.getContext('2d');
+ g.fillStyle='#000';g.fillRect(0,0,w,h);g.filter='blur('+((box.feather|0)||16)+'px)';g.fillStyle='#fff';g.beginPath();g.ellipse(box.cx,box.cy,box.rx,box.ry,0,0,7);g.fill();g.filter='none';
+ return c.toDataURL('image/png')}
+const FACE_TRAITS372={臉型:['oval face','heart-shaped face','round face','long face','soft square jaw'],眼型:['upturned almond eyes','round eyes','downturned eyes','hooded eyes','wide-set eyes'],眉:['straight brows','soft arched brows','thick brows','delicate thin brows'],鼻:['small straight nose','short button nose','high-bridged nose','rounded nose'],唇:['thin lips','full lips','rosebud lips','wide mouth'],細節:['faint freckles across the nose','a small beauty mark near the lip','clear smooth skin'],年齡感:['youthful adult look','mid-20s appearance','early 30s appearance','mature adult features']};
+const TRAIT_HINT372={臉型:/oval|heart-shaped|round face|long face|square jaw|臉型|瓜子|鵝蛋|圓臉/,眼型:/almond eyes|round eyes|downturned|hooded|wide-set|眼型|杏眼|丹鳳/,眉:/brows|eyebrows|眉/,鼻:/nose|鼻/,唇:/lips|mouth|唇/,細節:/freckles|beauty mark|mole|雀斑|痣/,年齡感:/mid-20|early 30|youthful adult|mature adult|年齡/};
+function rng372(seed){let s=(seed>>>0)||1;return function(){s=s*1664525+1013904223>>>0;return s/4294967296}}
+function faceTraits372(id,seed,prompt){const I=typeof charInfo37==='function'?charInfo37(id):{};const txt=((I.look||'')+' '+(I.desc||'')+' '+(prompt||'')).toLowerCase();
+ const cats=Object.keys(FACE_TRAITS372).filter(c=>!TRAIT_HINT372[c]||!TRAIT_HINT372[c].test(txt));
+ const rnd=rng372(seed||1);const n=Math.min(cats.length,2+Math.floor(rnd()*2));const pick=[],pool=cats.slice();
+ while(pick.length<n&&pool.length){const i=Math.floor(rnd()*pool.length),c=pool.splice(i,1)[0],L=FACE_TRAITS372[c];pick.push(L[Math.floor(rnd()*L.length)])}
+ return pick}
+function editPromptA372(kind,x,hasOutfitImg){x=String(x||'').trim()||'指定的服裝';
+ if(kind==='gear')return'只在角色身上加上／換成這件裝備：'+x+'，其餘不變。';
+ if(hasOutfitImg)return'<image1> 是同一位成年角色。完全保持 <image1> 的臉型、五官、表情、髮型、髮色、膚色、體型、姿勢、構圖與畫風不變，只把服裝換成 <image2> 的衣服。服裝端莊得體，不裸露。';
+ return'<image1> 是同一位成年角色。完全保持 <image1> 的臉型、五官、表情、髮型、髮色、膚色、體型、姿勢、構圖與畫風不變，只把服裝換成：'+x+'。服裝端莊得體，不裸露。'}
+function styleOnlyPrompt372(kw){return'只參考 <image1> 的畫風、上色與光影質感，不要畫出 <image1> 的內容。畫一位全新的成年角色：'+(kw||'')+'。'}
+function pickSeed372(){const el=typeof $==='function'?$('#img37Seed'):null,rndEl=typeof $==='function'?$('#img37SeedRand'):null;
+ const c=typeof img37==='function'?img37():{};const random=rndEl?!!rndEl.checked:c.seedRand!==false;let seed;
+ if(!random&&el&&el.value!==''&&isFinite(+el.value))seed=Math.floor(+el.value)>>>0;else seed=Math.floor(Math.random()*0xFFFFFFFF)>>>0;
+ if(el)el.value=String(seed);try{c.seed=seed;c.seedRand=random;if(typeof img37Save==='function')img37Save()}catch(e){}
+ V372.lastSeed=seed;return seed}
+function c37PortraitGraph372(p,c){p=p||{};c=c||(typeof c37==='function'?c37():{});
+ const mode=p.porMode||'new';const wf={};const T=(id,ct,inp,title)=>{wf[id]={class_type:ct,inputs:inp,_meta:{title:title}}};
+ T('1','UNETLoader',{unet_name:c.unet,weight_dtype:'default'},'月影_主模型');let mid='1';
+ if(c.qwenCache!==false&&c.hasQwenCache372){T('11','QwenImage21Cache',{model:['1',0],device:'cpu',dtype:'default'},'月影_快取');mid='11'}
+ T('2','CLIPLoader',{clip_name:c.clip,type:c.clipType||'qwen_image',device:'cpu'},'月影_文字編碼器');
+ T('3','VAELoader',{vae_name:c.vae},'月影_VAE');
+ if(c.qwenShift){T('4','ModelSamplingAuraFlow',{model:[mid,0],shift:+c.shift||3.1},'月影_取樣偏移');mid='4'}
+ const ei=c.encIn||{},refs=p.refs||[],inp={};inp[ei.clip||'clip']=['2',0];inp[ei.prompt||'prompt']=p.prompt||'';inp[ei.neg||'negative_prompt']=p.negative||'';
+ if(mode==='edit'){inp[ei.res||'resolution']=0;inp[ei.vae||'vae']=['3',0]}
+ else if(mode==='style'){inp[ei.res||'resolution']=p.res!=null?+p.res:512;inp[ei.vae||'vae']=['3',0]}
+ else inp[ei.res||'resolution']=p.res!=null?+p.res:768;
+ const keys=(ei.images&&ei.images.length)?ei.images:refs.map((_,i)=>'images.image_'+(i+1));
+ if((mode==='edit'||mode==='style')&&refs.length)refs.forEach((r,i)=>{const lid=String(20+i);T(lid,'LoadImage',{image:r},'月影_參考圖'+(i+1));if(keys[i])inp[keys[i]]=[lid,0]});
+ T('5','TextEncodeQwenImage21',inp,'月影_正向提示詞');
+ const cfg=p.cfg!=null?+p.cfg:(+c.cfg||1);const denoise=p.denoise!=null?+p.denoise:1;
+ const ks={seed:p.seed,steps:+c.steps||25,cfg:cfg,sampler_name:c.sampler||'euler',scheduler:c.scheduler||'simple',denoise:denoise,model:[mid,0],positive:['5',0],negative:['5',1]};
+ if(mode==='edit'&&p.conservative&&refs[0]){T('22','VAEEncode',{pixels:['20',0],vae:['3',0]},'月影_保守編碼');ks.latent_image=['22',0];if(ks.denoise===1)ks.denoise=0.85}
+ else if(mode==='edit'&&refs[0])ks.latent_image=['5',2];
+ else{T('7','EmptySD3LatentImage',{width:p.w||768,height:p.h||1152,batch_size:1},'月影_尺寸');ks.latent_image=['7',0]}
+ T('8','KSampler',ks,'月影_種子');T('9','VAEDecode',{samples:['8',0],vae:['3',0]},'月影_解碼');let out=['9',0];
+ if(mode==='edit'&&p.pasteFace!==false&&refs[0]&&p.mask){T('21','LoadImageMask',{image:p.mask,channel:'red'},'月影_臉部遮罩');T('12','ImageCompositeMasked',{destination:['9',0],source:['20',0],x:0,y:0,resize_source:false,mask:['21',0]},'月影_臉貼回');out=['12',0]}
+ T('10','SaveImage',{filename_prefix:'moonshadow/'+(p.kind||'portrait'),images:out},'月影_輸出');return wf}
+async function c37UploadMask372(dataURL,refName){const b=typeof c37PngBlob==='function'?await c37PngBlob(dataURL):await (await fetch(dataURL)).blob();const fd=new FormData();
+ const name='moonshadow_mask_'+(typeof hstr==='function'?hstr(dataURL).toString(36):Date.now())+'.png';
+ fd.append('image',b,name);fd.append('type','input');fd.append('overwrite','true');
+ if(refName)fd.append('original_ref',JSON.stringify({filename:refName,subfolder:'',type:'input'}));
+ let r;try{r=await c37Fetch('/upload/mask',{method:'POST',body:fd},{timeout:30000})}catch(e){r=null}
+ if(!r||!r.ok){const fd2=new FormData();fd2.append('image',b,name);fd2.append('type','input');fd2.append('overwrite','true');r=await c37Fetch('/upload/image',{method:'POST',body:fd2},{timeout:30000})}
+ if(!r||!r.ok)throw new Error('遮罩上傳失敗（HTTP '+(r&&r.status||'?')+'）');const j=await r.json();return(j.subfolder?j.subfolder+'/':'')+j.name}
+
+function porCtrlHTML372(id){const c=typeof img37==='function'?img37():{};
+ const o=(typeof $==='function'&&$('#img37O')&&$('#img37O').value)||(typeof V37!=='undefined'&&(V37.imgSel[id+':o']||V37.prevOutfit[id]))||(typeof outfitOf==='function'?outfitOf(id):'daily');
+ const own=ownPortraits372(id,o);const mode=c.porMode||defaultPorMode372(id);const rand=c.seedRand!==false;const seed=c.seed!=null?c.seed:'';
+ const paste=c.pasteFace!==false,cons=!!c.conservative,style=!!c.styleOnly,cfg=c.porCfg||'1',editKind=c.editKind||'outfit';
+ const th=own[0],hint=!own.length&&mode==='edit',srefs=styleRefs372();
+ const E=typeof esc==='function'?esc:s=>String(s||'').replace(/[&<>"]/g,ch=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
+ return`<div class="img37por372" id="img37PorCtrl"><div class="row img37seed372"><label>出圖模式 <select id="img37Mode"><option value="edit"${mode==='edit'?' selected':''}>換裝／換裝備</option><option value="new"${mode!=='edit'?' selected':''}>新立繪</option></select></label>
+ <label>種子 <input id="img37Seed" type="number" min="0" step="1" value="${E(String(seed))}"></label>
+ <label class="sw"><input type="checkbox" id="img37SeedRand" ${rand?'checked':''}> 🎲 隨機</label></div>
+ <div class="row img37lock372"><label class="sw"><input type="checkbox" id="img37LockFace" ${mode==='edit'&&own.length?'checked':''} ${own.length?'':'disabled'}> 用這個角色現有立繪鎖臉</label>
+ ${th?`<span class="img37refth372" title="${E(th.key)}"><img src="${th.url}" alt="參考圖"></span><small class="note" style="margin:0">將用：${E(th.key)}</small>`:''}</div>
+ <div class="row img37opt372" ${mode==='edit'?'':'hidden'}><label>編輯 <select id="img37EditKind"><option value="outfit"${editKind!=='gear'?' selected':''}>換裝</option><option value="gear"${editKind==='gear'?' selected':''}>換裝備</option></select></label>
+ <label class="sw"><input type="checkbox" id="img37PasteFace" ${paste?'checked':''}> 臉貼回（保持五官）</label>
+ <label class="sw"><input type="checkbox" id="img37Cons" ${cons?'checked':''}> 保守模式（姿勢不變，衣服較難改）</label></div>
+ <div class="row img37opt372"><label class="sw"><input type="checkbox" id="img37Style" ${style?'checked':''}> 只參考畫風${srefs[0]?'（'+E(srefs[0].label||srefs[0].key)+'）':''}</label>
+ <label>CFG <select id="img37Cfg"><option value="1"${+cfg===1?' selected':''}>1（預設，較快）</option><option value="2.5"${+cfg===2.5?' selected':''}>2.5</option><option value="3"${+cfg===3?' selected':''}>3</option><option value="3.5"${+cfg===3.5?' selected':''}>3.5（負向詞生效，較慢）</option></select></label></div>
+ <div class="note img37hint372" id="img37ModeHint" ${hint?'':'hidden'}>先生成新立繪。這個角色還沒有自己的立繪，換裝模式不會改用旅人的臉。</div></div>`}
+function paintSeedCard372(){const R=typeof $==='function'?$('#img37R'):null;if(!R)return;const note=R.querySelector('.img37res .note');
+ if(note&&V372.lastSeed!=null&&!note.dataset.seed372){note.dataset.seed372='1';const extra=V372.lastLock?'，已用角色立繪鎖臉':(V372.lastPorReq&&V372.lastPorReq.mode==='style'?'，只參考畫風':'，純文字出圖');note.insertAdjacentHTML('beforeend','　種子 <code class="img37usedseed">'+V372.lastSeed+'</code>'+extra)}}
+function watchSeedCard372(){const R=typeof $==='function'?$('#img37R'):null;if(!R||R._seedMo372)return;const mo=new MutationObserver(()=>paintSeedCard372());mo.observe(R,{childList:true,subtree:true});R._seedMo372=mo}
+
+async function genComfyPortrait372(id,o,expr,prompt,force){
+ const style=!!($('#img37Style')&&$('#img37Style').checked);const lock=!!($('#img37LockFace')&&$('#img37LockFace').checked);
+ const mode0=($('#img37Mode')||{}).value||porMode372();const mode=style?'style':(lock||mode0==='edit'?'edit':'new');
+ if(mode==='edit'&&!hasOwnPortrait372(id)){const err=new Error('先生成新立繪');err.html='<div class="note img37hint372">這個角色還沒有自己的立繪，請先生成新立繪。不會用旅人的臉來鎖臉。</div>';try{toast('先生成新立繪')}catch(e){}throw err}
+ if(mode==='style'&&!styleRefs372().length){const err=new Error('沒有可用的場景／背景圖當畫風參考（不要用人物立繪）。');try{toast(err.message)}catch(e){}throw err}
+ await pingComfy371();if(typeof applyComfyPicks371==='function')applyComfyPicks371();
+ const neg=(($('#img37Neg')||{}).value!=null?$('#img37Neg').value:((typeof img37==='function'&&img37().neg)||(typeof img37Neg372==='function'?img37Neg372():'')));
+ const seed=pickSeed372();let refs=[],mask=null,w=768,h=1152,res=768,prompt2=prompt,paste=false,cons=false,cfg=+((($('#img37Cfg')||{}).value)||1);
+ if(mode==='edit'){const own=ownPortraits372(id,o);const scaled=await scalePortraitRef372(own[0].url);refs=[scaled.url];w=scaled.w;h=scaled.h;res=0;
+  paste=!($('#img37PasteFace')&&!$('#img37PasteFace').checked);cons=!!($('#img37Cons')&&$('#img37Cons').checked);
+  if(paste)mask=drawFaceMask372(w,h,faceMaskBox372(own[0].key,w,h));
+  const kind=($('#img37EditKind')||{}).value||'outfit';
+  const X=kind==='gear'?(function(){try{const g=gear(id);return(typeof GEAR_SLOTS!=='undefined'?GEAR_SLOTS:[]).filter(s=>s!=='base'&&g[s]).map(s=>((typeof GEAR_ZH==='object'&&GEAR_ZH[s])||s)+'：'+g[s]).join('、')||'指定裝備'}catch(e){return'指定裝備'}})():((typeof OUTFITS==='object'&&OUTFITS[o])||o);
+  prompt2=editPromptA372(kind,X,false)}
+ else if(mode==='style'){refs=[styleRefs372()[0].url];res=512;w=768;h=1152;prompt2=styleOnlyPrompt372(prompt)}
+ else{const traits=faceTraits372(id,seed,prompt);if(traits.length)prompt2=String(prompt||'')+(prompt&&!/,\s*$/.test(String(prompt).trim())?', ':'')+traits.join(', ');V372.lastTraits=traits}
+ V372.lastPorReq={id,o,expr,mode,seed,refs,mask:!!mask,w,h,res,paste,conservative:cons,cfg,prompt:prompt2};V372.lastSeed=seed;V372.lastLock=mode==='edit';
+ const was=c37().on;c37().on=true;const wasRef=c37().maxRef;
+ try{if((mode==='edit'||mode==='style')&&c37().maxRef<1)c37().maxRef=1;
+  V372._porReq={porMode:mode,res,denoise:cons?0.85:1,cfg,pasteFace:paste,conservative:cons,mask,refs};
+  const url=await c37Run({kind:'portrait',label:`${charInfo37(id).name}・${(OUTFITS&&OUTFITS[o])||o}・${expr}`,prompt:prompt2,negative:neg,w,h,seed,refs,mask,porMode:mode,res,denoise:cons?0.85:1,cfg,pasteFace:paste,conservative:cons,force:!!force});
+  return await fitPortrait371(url)}
+ finally{c37().on=was;c37().maxRef=wasRef}}
+
+function pvInLayout372(){const box=typeof $==='function'?$('#pv35 .pv35-in'):null;if(!box)return;
+ let tgt=$('#pv35Tgt372');if(!tgt){tgt=document.createElement('div');tgt.id='pv35Tgt372';tgt.className='pv35tgt372';box.insertBefore(tgt,box.firstChild)}
+ ['pv35Ooc','pv35To','pvGrp372'].forEach(id=>{const el=$('#'+id);if(el&&el.parentNode!==tgt)tgt.appendChild(el)});
+ let row=$('#pv35Row372');if(!row){row=document.createElement('div');row.id='pv35Row372';row.className='pv35row372';const inp=$('#pv35Inp');if(inp)box.insertBefore(row,inp);else box.appendChild(row)}
+ const inp=$('#pv35Inp'),send=$('#pv35Send');if(inp&&inp.parentNode!==row)row.appendChild(inp);if(send&&send.parentNode!==row)row.appendChild(send)}
+
 function c37Qwen21Graph372(p,c){p=p||{};c=c||(typeof c37==='function'?c37():{});
+ if(p.porMode)return c37PortraitGraph372(p,c);
  const wf={};const T=(id,ct,inp,title)=>{wf[id]={class_type:ct,inputs:inp,_meta:{title:title}}};
  T('1','UNETLoader',{unet_name:c.unet,weight_dtype:'default'},'月影_主模型');
  let mid='1';
  if(c.qwenCache!==false&&c.hasQwenCache372){T('11','QwenImage21Cache',{model:['1',0],device:'cpu',dtype:'default'},'月影_快取');mid='11'}
- T('2','CLIPLoader',{clip_name:c.clip,type:c.clipType||'qwen_image',device:'default'},'月影_文字編碼器');
+ T('2','CLIPLoader',{clip_name:c.clip,type:c.clipType||'qwen_image',device:'cpu'},'月影_文字編碼器');
  T('3','VAELoader',{vae_name:c.vae},'月影_VAE');
  if(c.qwenShift){T('4','ModelSamplingAuraFlow',{model:[mid,0],shift:+c.shift||3.1},'月影_取樣偏移');mid='4'}
  const cap=Math.max(0,Math.min(16,+(c.maxRef||0)));
@@ -8662,13 +8834,20 @@ function c37CascadeDrop372(wf,drop){const gone=new Set((drop||[]).map(String));
  for(const n of Object.values(wf)){if(!n||!n.inputs)continue;for(const k of Object.keys(n.inputs)){const v=n.inputs[k];if(Array.isArray(v)&&gone.has(String(v[0])))delete n.inputs[k]}}
  return [...gone]}
 function c37StripEmptyRef372(wf,p){if(!wf)return wf;const c=typeof c37==='function'?c37():{};const cap=Math.max(0,+(c.maxRef||0));
+ const refs=(p&&p.refs)||[];
  const drop=[];for(const[id,n] of Object.entries(wf)){if(!n||n.class_type!=='LoadImage')continue;
   const t=String((n._meta&&n._meta.title)||'');if(!/參考圖|REF\s*\d/i.test(t))continue;
+  const m=t.match(/(?:參考圖|REF)\s*(\d+)/i);const idx=m?(+m[1]-1):0;const r=refs[idx];
   const real=!c37IsPlaceholderImg372(n.inputs&&n.inputs.image);
-  if(cap<=0||!real)drop.push(id)}
- if(!drop.length)return wf;
- c37CascadeDrop372(wf,drop);
- if(cap<=0){const msg='這份工作流程含有「參考圖」節點，但「參考圖上限」目前是 0。請到設定 → 繪圖／ComfyUI 把「參考圖上限」設為 1 或以上，再提供參考圖。';V372.comfyHint=msg;try{if(typeof toast==='function')toast(msg)}catch(e){}}
+  if(cap<=0||!r||!real)drop.push(id)}
+ if(drop.length){c37CascadeDrop372(wf,drop);
+  if(cap<=0){const msg='這份工作流程含有「參考圖」節點，但「參考圖上限」目前是 0。請到設定 → 繪圖／ComfyUI 把「參考圖上限」設為 1 或以上，再提供參考圖。';V372.comfyHint=msg;try{if(typeof toast==='function')toast(msg)}catch(e){}}}
+ const hasLoad=Object.values(wf).some(n=>n&&n.class_type==='LoadImage');
+ if(!hasLoad){const ks=Object.values(wf).find(n=>n&&n.class_type==='KSampler'&&n.inputs);
+  let eid=Object.keys(wf).find(id=>wf[id]&&wf[id].class_type==='EmptySD3LatentImage');
+  if(!eid&&ks){let n=7;while(wf[String(n)])n++;eid=String(n);wf[eid]={class_type:'EmptySD3LatentImage',inputs:{width:(p&&p.w)||768,height:(p&&p.h)||1152,batch_size:1},_meta:{title:'月影_尺寸'}}}
+  if(ks&&eid){const lat=ks.inputs.latent_image;const encId=Object.keys(wf).find(id=>c37IsEncoder372(wf[id]));
+   if(!lat||(Array.isArray(lat)&&encId&&String(lat[0])===String(encId)&&+lat[1]===2)||(Array.isArray(lat)&&!wf[String(lat[0])]))ks.inputs.latent_image=[eid,0]}}
  return wf}
 function c37ValidateWf372(wf){const issues=[];if(!wf||typeof wf!=='object'||Array.isArray(wf))return{ok:false,issues:['工作流程無效']};
  for(const[id,n] of Object.entries(wf)){if(!n||!n.class_type){issues.push(id+'：缺少 class_type');continue}
@@ -8705,11 +8884,14 @@ async function c37FillRequired372(wf,p){if(!wf||typeof c37ObjInfo!=='function')r
   if(ks&&hasRef&&Array.isArray(outs)&&outs.length>=3&&!ks.inputs.latent_image)ks.inputs.latent_image=[encId,2]}
  return wf}
 
-{const _wf=typeof c37Workflow==='function'?c37Workflow:null;if(_wf)c37Workflow=function(p){V372._wfp=p;return _wf.apply(this,arguments)}}
+{const _wf=typeof c37Workflow==='function'?c37Workflow:null;if(_wf)c37Workflow=function(p){const q=V372._porReq||{};p=Object.assign({},p||{});['porMode','res','denoise','cfg','pasteFace','conservative'].forEach(k=>{if(p[k]==null&&q[k]!=null)p[k]=q[k]});if(!p.mask&&(q.maskName||q.mask)&&!/^data:/.test(String(q.maskName||q.mask||'')))p.mask=q.maskName||q.mask;V372._wfp=p;return _wf.call(this,p)}}
 {const _q=typeof c37Qwen==='function'?c37Qwen:null;if(_q)c37Qwen=function(p,c){c=c||(typeof c37==='function'?c37():{});if(c37OfficialQwen21_372(c))return c37Qwen21Graph372(p,c);return _q.apply(this,arguments)}}
 {const _inj=typeof c37Inject==='function'?c37Inject:null;if(_inj)c37Inject=function(src,p){V372.comfyHint='';const wf=_inj.apply(this,arguments);try{c37InjectFix372(wf,p)}catch(e){console.warn('c37inject372',e)}return wf}}
 {const _n=typeof c37Needs==='function'?c37Needs:null;if(_n)c37Needs=function(){const need=_n.apply(this,arguments);const c=typeof c37==='function'?c37():{};if(!need||!Array.isArray(need.nodes))return need;if((c.tpl||'qwen21')==='qwen21'&&!c.qwenShift)need.nodes=need.nodes.filter(x=>x!=='ModelSamplingAuraFlow');return need}}
-{const _ex=typeof c37Exec==='function'?c37Exec:null;if(_ex)c37Exec=async function(job){try{await c37DetectEnc372();if(typeof c37Save==='function')c37Save()}catch(e){}return _ex.apply(this,arguments)}}
+{const _ex=typeof c37Exec==='function'?c37Exec:null;if(_ex)c37Exec=async function(job){try{await c37DetectEnc372();if(typeof c37Save==='function')c37Save()}catch(e){}
+ try{const q=job&&job.req||{};V372._porReq=Object.assign({},V372._porReq||{},q);
+  if(q.mask&&/^data:/.test(String(q.mask))){q.maskName=await c37UploadMask372(q.mask,q.maskRef||q.refName);V372._porReq.maskName=q.maskName;V372._porReq.mask=q.maskName}}catch(e){console.warn('c37mask372',e)}
+ return _ex.apply(this,arguments)}}
 {const _t=typeof c37Test==='function'?c37Test:null;if(_t)c37Test=async function(){const out=await _t.apply(this,arguments);try{await c37DetectEnc372();if(typeof c37Save==='function')c37Save()}catch(e){}return out}}
 {const _f=typeof c37Fetch==='function'?c37Fetch:null;if(_f)c37Fetch=function(path,init,o){if(String(path||'').split('?')[0]==='/prompt'&&init&&init.body){return(async()=>{try{const body=typeof init.body==='string'?JSON.parse(init.body):init.body;if(body&&body.prompt){c37InjectFix372(body.prompt,V372._wfp||{});await c37FillRequired372(body.prompt,V372._wfp||{})}init=Object.assign({},init,{body:JSON.stringify(body)})}catch(e){console.warn('c37fill372',e)}return _f.call(this,path,init,o)})()}return _f.apply(this,arguments)}}
 {const _h=typeof c37SetHTML==='function'?c37SetHTML:null;if(_h)c37SetHTML=function(){let s=_h.apply(this,arguments);const c=typeof c37==='function'?c37():{};
@@ -8918,8 +9100,8 @@ document.addEventListener('change',e=>{const t=e.target;if(!t)return;
 document.addEventListener('input',function(e){const t=e.target;if(!t)return;if(t.id==='img37P'||t.id==='img37Neg')paintGloss372()});
 {const _os=typeof openSheet==='function'?openSheet:null;if(_os)openSheet=function(id,tab){const r=_os.apply(this,arguments);try{if((tab||(typeof CS_TAB!=='undefined'&&CS_TAB))==='por')maybeEnhancePrompt372()}catch(e){}return r}}
 {const _g=typeof buildComfyPortraitGraph371==='function'?buildComfyPortraitGraph371:null;if(_g)buildComfyPortraitGraph371=function(p){p=Object.assign({},p||{});if(p.negative==null)p.negative=img37Neg372();return _g.call(this,p)}}
-{const _s=typeof genStability371==='function'?genStability371:null;if(_s)genStability371=async function(prompt){const style=stabilityStyle372();const orig=FormData.prototype.append;
-  FormData.prototype.append=function(k,v){const r=orig.apply(this,arguments);if(!this._sp372&&(k==='prompt'||k==='aspect_ratio'||k==='negative_prompt')&&style){orig.call(this,'style_preset',style);this._sp372=1}return r};
+{const _s=typeof genStability371==='function'?genStability371:null;if(_s)genStability371=async function(prompt){const style=stabilityStyle372();const seed=pickSeed372();const orig=FormData.prototype.append;
+  FormData.prototype.append=function(k,v){const r=orig.apply(this,arguments);if(!this._sp372&&(k==='prompt'||k==='aspect_ratio'||k==='negative_prompt')&&style){orig.call(this,'style_preset',style);this._sp372=1}if(!this._sd372&&(k==='prompt'||k==='aspect_ratio'||k==='negative_prompt')){orig.call(this,'seed',String(seed));this._sd372=1}return r};
   try{return await _s.apply(this,arguments)}finally{FormData.prototype.append=orig}}}
 
 /* ---------- ComfyUI 一鍵出圖說明與上次錯誤建議 ---------- */
@@ -8944,11 +9126,463 @@ function c37HelpHTML372(){return'<details class="img37comfyhelp" id="img37ComfyH
 {const _h=typeof img37HTML==='function'?img37HTML:null;if(_h)img37HTML=function(id){let s=_h.apply(this,arguments);const c=typeof img37==='function'?img37():{};
   if((c.prov||'')==='comfy'&&s.indexOf('id="img37ComfyHelp"')<0){s=s.replace('data-img37="gen">🎨 生成 1 張</button>','data-img37="gen">🎨 生成 1 張</button>'+c37HelpHTML372());
     const err=V372.comfyLastErr?c37ErrBoxHTML372(V372.comfyLastErr):'';s=s.replace('<div id="img37R">','<div id="img37ComfyLastSlot">'+err+'</div><div id="img37R">')}
+  if(s.indexOf('id="img37PorCtrl"')<0&&s.indexOf('data-img37="gen"')>=0){const ctrl=porCtrlHTML372(id);s=s.replace('<div class="row"><button class="btn g sm" data-img37="restore">',ctrl+'<div class="row"><button class="btn g sm" data-img37="restore">');
+    const noOwn=!hasOwnPortrait372(id);const mode=(c.porMode||defaultPorMode372(id));
+    if(noOwn&&mode==='edit')s=s.replace('data-img37="gen">🎨 生成 1 張</button>','data-img37="gen" disabled title="先生成新立繪">🎨 生成 1 張</button>')}
+  try{setTimeout(watchSeedCard372,0)}catch(e){}
   return s}}
+document.addEventListener('change',function(e){const t=e.target;if(!t||!t.id||!/^img37(Mode|SeedRand|LockFace|PasteFace|Cons|Style|Cfg|EditKind|Seed)$/.test(t.id))return;
+ const c=typeof img37==='function'?img37():{};
+ if(t.id==='img37Mode'){c.porMode=t.value;c.lockFace=t.value==='edit'}
+ if(t.id==='img37LockFace'){c.lockFace=!!t.checked;c.porMode=t.checked?'edit':'new'}
+ if(t.id==='img37SeedRand')c.seedRand=!!t.checked;if(t.id==='img37PasteFace')c.pasteFace=!!t.checked;if(t.id==='img37Cons')c.conservative=!!t.checked;
+ if(t.id==='img37Style')c.styleOnly=!!t.checked;if(t.id==='img37Cfg')c.porCfg=t.value;if(t.id==='img37EditKind')c.editKind=t.value;if(t.id==='img37Seed'&&t.value!=='')c.seed=+t.value;
+ try{img37Save()}catch(er){}try{img37Refresh(true)}catch(er){}},true);
 function attachComfyErr372(e){if(!e)return e;const msg=e.message||String(e);c37RememberErr372(msg);try{e.html=c37ErrHTML372(msg,e.raw)}catch(x){}return e}
 {const _p=typeof pingComfy371==='function'?pingComfy371:null;if(_p)pingComfy371=async function(){try{return await _p.apply(this,arguments)}catch(e){throw attachComfyErr372(e)||e}}}
 {const _r=typeof c37Run==='function'?c37Run:null;if(_r)c37Run=function(req){return _r.apply(this,arguments).then(v=>v,e=>{throw attachComfyErr372(e)||e})}}
-{const _g=typeof genComfyPortrait371==='function'?genComfyPortrait371:null;if(_g)genComfyPortrait371=async function(){try{return await _g.apply(this,arguments)}catch(e){throw attachComfyErr372(e)||e}}}
+{const _g=typeof genComfyPortrait371==='function'?genComfyPortrait371:null;if(_g)genComfyPortrait371=async function(id,o,expr,prompt,force){try{return await genComfyPortrait372(id,o,expr,prompt,force)}catch(e){throw attachComfyErr372(e)||e}}}
+{const _po=typeof genPollinations371==='function'?genPollinations371:null;if(_po)genPollinations371=async function(prompt,force){const seed=pickSeed372();const _f=window.fetch;window.fetch=function(u,i){if(typeof u==='string'&&/pollinations\.ai\/prompt/.test(u))u=String(u).replace(/([?&])seed=\d+/,'$1seed='+seed);return _f.apply(this,arguments)};try{return await _po.apply(this,arguments)}finally{window.fetch=_f}}}
+{const _k=typeof c37JobKey==='function'?c37JobKey:null;if(_k)c37JobKey=function(req){req=req||{};const extra='|'+[req.porMode,req.cfg,req.denoise,req.pasteFace,req.conservative,req.mask&&(typeof hstr==='function'?hstr(String(req.mask)):String(req.mask).length)].join(',');return _k.call(this,Object.assign({},req,{prompt:(req.prompt||'')+extra}))}}
+
+
+/* ---------- v3.7.2：通用地名先在本鎮解析，避免誤跳回灰石鎮 ---------- */
+const HOME_NAMES372={'酒館大廳':'tavern','旅店大通鋪':'dorm','市集廣場':'market','鐵匠鋪':'smithy','河邊':'river','森林小徑':'forest'};
+const KIND372={
+  tavern:{re:/酒館|酒肆|酒吧|酒樓|酒家|吧台/,home:'tavern',priv:['tavern_private'],fac:['drink'],label:'酒館'},
+  inn:{re:/旅店|客棧|旅籠|旅館|飯店|投宿|住宿|過夜|歇腳/,home:'dorm',priv:['inn_room'],fac:['sleep'],label:'旅店'},
+  dorm:{re:/通鋪|宿舍/,home:'dorm',priv:['inn_room'],fac:['sleep'],label:'通鋪'},
+  guild:{re:/公會|鏢局|任務堂|口入屋/,home:'guild',priv:['guild_parlor'],fac:[],label:'公會'},
+  market:{re:/市集|市場|廣場|攤/,home:'market',priv:['shop_backroom'],fac:['shop'],label:'市集'},
+  smithy:{re:/鐵匠|打鐵|鍛造/,home:'smithy',priv:[],fac:['forge'],label:'鐵匠鋪'},
+  river:{re:/河邊|河岸/,home:'river',priv:[],fac:['water'],label:'河邊'},
+  forest:{re:/森林小徑|^森林$/,home:'forest',priv:[],fac:['woods'],label:'森林'}
+};
+function areaKey372(k){k=k||(typeof S!=='undefined'&&S&&S.loc);if(!k)return null;
+ try{const a=typeof areaOfLoc==='function'?areaOfLoc(k):null;if(a)return a}catch(e){}
+ const l=LOCS[k];if(!l)return null;if(!l.far)return'home';if(l.area)return l.area;if(l.wm&&typeof WM_ROLE==='object'&&WM_ROLE[l.wm])return l.wm;return k}
+function sameTown372(a,b){const A=areaKey372(a),B=areaKey372(b);return!!(A&&B&&A===B)}
+function isHomeArea372(k){return areaKey372(k)==='home'}
+function townList372(){const out=[{id:'home',names:['灰石鎮',(typeof M!=='undefined'&&M&&M.homeName)||'灰石鎮']}];
+ try{(typeof WM_REGION!=='undefined'&&WM_REGION.places||[]).forEach(p=>{const ns=[p.name];if(LOCS[p.id]&&LOCS[p.id].name)ns.push(LOCS[p.id].name);out.push({id:p.id,names:[...new Set(ns.filter(Boolean))]})})}catch(e){}
+ return out}
+function townNamedIn372(q){q=String(q||'');let hit=null,len=0;
+ townList372().forEach(t=>t.names.forEach(n=>{if(n&&n.length>=2&&q.indexOf(n)>=0&&n.length>len){hit=t.id;len=n.length}}));
+ return hit}
+function kindOf372(q){q=String(q||'');if(HOME_NAMES372[q]){const id=HOME_NAMES372[q];return Object.keys(KIND372).map(k=>KIND372[k]).find(k=>k.home===id)||null}
+ for(const k of Object.keys(KIND372)){if(KIND372[k].re.test(q))return Object.assign({id:k},KIND372[k])}
+ return null}
+function isGenericQuery372(q,loc){q=String(q||'').trim();if(!q)return false;
+ if(HOME_NAMES372[q]&&!isHomeArea372(loc)&&!townNamedIn372(q))return true;
+ const k=kindOf372(q);if(!k)return false;
+ if(townNamedIn372(q))return false;
+ // 查询只是通用词、或等于本镇没有的「灰石鎮專屬全名」
+ const only=q.replace(/^(去|到|前往|帶我去|帶我們去|回|回到)/,'').replace(/[。！!？?\s]/g,'');
+ if(HOME_NAMES372[only]||k.re.test(only)&&only.length<=8)return true;
+ if(k&&!Object.keys(LOCS).some(id=>LOCS[id]&&LOCS[id].name===q&&!sameTown372(loc,id)&&LOCS[id].name!==k.label))return true;
+ return!!k}
+function locsInTown372(area){return Object.keys(LOCS||{}).filter(id=>{const l=LOCS[id];if(!l||l.dungeon)return false;return areaKey372(id)===area})}
+function scoreLocal372(q,kind,id,loc){const l=LOCS[id];if(!l)return 0;const n=l.name||'';let s=0;
+ if(q===n||q===id)s=100;else if(n&&(q.includes(n)||n.includes(q))&&String(q).length>=2)s=80;
+ if(kind){if(kind.re&&kind.re.test(n))s=Math.max(s,90);if(kind.home&&id===kind.home&&sameTown372(loc,id))s=Math.max(s,95);
+  const aff=typeof locAff==='function'?locAff(id):(typeof LOC_AFF==='object'&&LOC_AFF[id])||[];
+  // 分區（碼頭、燈塔…）若只是繼承了全城設施，不能當成「酒館／旅店」
+  if(kind.fac&&kind.fac.some(f=>aff&&aff.indexOf(f)>=0)&&!l.sub&&!l.guild)s=Math.max(s,55)}
+ if(id===(isPriv371()&&PR35?PR35.loc:loc))s+=3;
+ return s}
+function localPublic372(q,kind,loc){const area=areaKey372(loc);if(!area)return[];
+ return locsInTown372(area).map(id=>({kind:'loc',id,loc:id,name:LOCS[id].name,label:(area==='home'?LOCS[id].name:(LOCS[area]?LOCS[area].name+'的':'')+LOCS[id].name),s:scoreLocal372(q,kind,id,loc)})).filter(x=>x.s>=55).sort((a,b)=>b.s-a.s)}
+function localPriv372(kind,loc){if(!kind||!kind.priv||!kind.priv.length)return[];
+ const rooms=(typeof roomsAt35==='function'?roomsAt35(loc):[])||[];
+ const town=areaKey372(loc),tloc=town==='home'?loc:(LOCS[town]?town:loc);
+ const rooms2=tloc!==loc&&typeof roomsAt35==='function'?roomsAt35(tloc):[];
+ const all=[].concat(rooms,rooms2);
+ const seen={};const out=[];
+ all.forEach(r=>{if(!r||seen[r.id])return;if(kind.priv.indexOf(r.type)>=0||kind.priv.indexOf(r.id)>=0){seen[r.id]=1;out.push({kind:'priv',id:r.id,type:r.type,loc:r.loc||tloc,name:r.name,label:(LOCS[tloc]?LOCS[tloc].name+'的':'')+r.name,s:88})}});
+ return out}
+function amenityLoc372(kind,loc){if(!kind||!kind.fac||!kind.fac.length)return null;
+ const area=areaKey372(loc);const ids=locsInTown372(area);
+ const id=ids.find(k=>{const aff=typeof locAff==='function'?locAff(k):(LOC_AFF&&LOC_AFF[k])||[];return kind.fac.some(f=>aff&&aff.indexOf(f)>=0)&&!LOCS[k].sub&&!LOCS[k].guild})||ids.find(k=>{const aff=typeof locAff==='function'?locAff(k):(LOC_AFF&&LOC_AFF[k])||[];return kind.fac.some(f=>aff&&aff.indexOf(f)>=0)});
+ if(!id)return null;
+ return{kind:'loc',id,loc:id,name:LOCS[id].name,label:LOCS[id].name,amenity:true,s:50}}
+function bestLocal372(q,loc){const kind=kindOf372(q);
+ const pubs=localPublic372(q,kind,loc);
+ const priv=localPriv372(kind,loc);
+ // 公开地点名字对得上（例如鐵脊鎮的礦工酒館）优先
+ if(pubs[0]&&pubs[0].s>=80)return pubs[0];
+ // 问住宿／客房时优先本镇旅店客房
+ if(kind&&(/住宿|投宿|過夜|客房|上房/.test(q)||kind.label==='旅店')&&priv.some(p=>p.type==='inn_room'||p.id==='inn_room')){
+  const inn=priv.find(p=>p.type==='inn_room'||p.id==='inn_room');if(inn)return Object.assign({},inn,{needPick:true,alts:priv.concat(pubs).slice(0,4)})}
+ if(pubs[0]&&pubs[0].s>=70)return pubs[0];
+ if(priv.length===1&&pubs.length===0)return Object.assign({},priv[0],{needPick:true,alts:priv});
+ if(priv.length||pubs.length){const am=amenityLoc372(kind,loc);
+  return{kind:'missing',q,local:true,offers:[...priv,...pubs,am].filter(Boolean).filter((x,i,a)=>a.findIndex(y=>(y.kind+y.id)===(x.kind+x.id))===i).slice(0,5)}}
+ const am=amenityLoc372(kind,loc);
+ if(am)return{kind:'missing',q,local:true,amenity:true,offers:priv.concat([am]).slice(0,5)};
+ return null}
+function nearbyOffers372(q,loc){const kind=kindOf372(q);const out=[];
+ const local=bestLocal372(q,loc);if(local&&local.offers)out.push(...local.offers);
+ if(local&&local.kind!=='missing')out.unshift(local);
+ // 同大区其他有此设施的城镇（供玩家选，不自动走）
+ try{const r=typeof regionOfLoc==='function'?regionOfLoc(loc):null;const rid=r&&r.id;
+  Object.keys(LOCS).forEach(id=>{const l=LOCS[id];if(!l||l.dungeon||l.sub||sameTown372(loc,id))return;
+   const rr=typeof regionOfLoc==='function'?regionOfLoc(id):null;if(rid&&rr&&rr.id!==rid)return;
+   const s=scoreLocal372(q,kind,id,loc);if(s>=55)out.push({kind:'loc',id,loc:id,name:l.name,label:(typeof areaName==='function'?areaName(areaKey372(id))+'的':'')+l.name,s,crosstown:true})})}catch(e){}
+ return out.filter((x,i,a)=>x&&a.findIndex(y=>y&&(y.kind+y.id)===(x.kind+x.id))===i).slice(0,5)}
+function estLine372(from,to){try{if(typeof wmEst==='function'){const e=wmEst(from,to);if(e)return{km:e.km,text:e.text,hours:e.hours,road:e.road,e}}}catch(e){}
+ return{km:null,text:'一段路程',hours:null,road:false,e:null}}
+function destFromOrig372(q,opt){try{return (V372._resolvePlaceOrig||resolvePlace371)(q,opt)}catch(e){return null}}
+function resolveDest372(q,opt={}){q=String(q||'').trim().replace(/^(去|到|前往|帶我去|帶我們去|帶妳去|帶你去|帶他們去)/,'');if(!q)return null;
+ const loc=opt.loc||(typeof isPriv371==='function'&&isPriv371()?PR35.loc:S.loc)||S.loc;
+ const goingBack=/^(回|回到|返回)/.test(String((opt.raw||q)||''))||/^(回|回到|返回)/.test(q);
+ q=q.replace(/^(回|回到|返回)/,'');
+ // 楼上客房等：仍交给原解析（本镇私下空间）
+ if(/樓上|客房|包廂|雅間|通鋪/.test(q)&&isHomeArea372(loc)){const o=destFromOrig372(q,opt);if(o&&o.kind!=='missing')return o}
+ const named=townNamedIn372(q);
+ if(goingBack&&!named&&(HOME_NAMES372[q]||kindOf372(q))&&!isHomeArea372(loc)){
+  const kind=kindOf372(q);const homeId=HOME_NAMES372[q]||(kind&&kind.home);
+  if(homeId&&LOCS[homeId])return{kind:'loc',id:homeId,loc:homeId,name:LOCS[homeId].name,label:LOCS[homeId].name,crosstown:true,from:loc,reason:'named'}}
+ if(named&&named===areaKey372(loc)&&kindOf372(q)){const local=bestLocal372(q,loc);if(local)return local}
+ if(named&&named!==areaKey372(loc)){
+  const q2=q;const kind=kindOf372(q2);
+  const dummyLoc=named==='home'?'tavern':(LOCS[named]?named:loc);
+  const local=bestLocal372(q2.replace(townList372().find(t=>t.id===named).names[0],'').trim()||q2,dummyLoc)||bestLocal372(q2,dummyLoc);
+  if(local&&local.kind!=='missing')return Object.assign({},local,{crosstown:true,from:loc,reason:'named'});
+  if(local&&local.offers)return Object.assign({},local,{crosstown:true,from:loc,reason:'named'});
+  const homeId=HOME_NAMES372[q.replace(/灰石鎮|青石鎮|灰石區|灰石市|灰石站|灰石宿/g,'').trim()]||(kind&&kind.home);
+  if(named==='home'&&homeId&&LOCS[homeId])return{kind:'loc',id:homeId,loc:homeId,name:LOCS[homeId].name,label:LOCS[homeId].name,crosstown:true,from:loc,reason:'named'}
+ }
+ if(isGenericQuery372(q,loc)||HOME_NAMES372[q]||kindOf372(q)){
+  const local=bestLocal372(q,loc);
+  if(local&&local.kind!=='missing'&&!local.needPick)return local;
+  if(local&&local.needPick)return{kind:'missing',q,local:true,offers:(local.alts||[local]).slice(0,5)};
+  if(local&&local.kind==='missing')return local;
+  const offers=nearbyOffers372(q,loc);
+  if(offers.length)return{kind:'missing',q,local:false,offers}
+ }
+ // 他镇的专有地名（例如人在格洛港说「礦工酒館」）
+ const exact=Object.keys(LOCS).find(id=>LOCS[id]&&(LOCS[id].name===q||q===id));
+ if(exact&&!sameTown372(loc,exact)&&!LOCS[exact].dungeon)return{kind:'loc',id:exact,loc:exact,name:LOCS[exact].name,label:LOCS[exact].name,crosstown:true,from:loc,reason:'exact'};
+ return destFromOrig372(q,opt)}
+function showCrossTown372(place){const from=place.from||S.loc,to=place.loc||place.id;const est=estLine372(from,to);
+ const fn=LOCS[from]?LOCS[from].name:'這裡',tn=place.label||place.name||(LOCS[to]&&LOCS[to].name)||'那裡';
+ const dist=(est.km!=null?est.km+' 公里，約 ':'')+(est.text||'一段路程');
+ const html=`「${esc(fn)}」到「${esc(tn)}」是另一個城鎮，約 ${esc(dist)}。確定要現在出發嗎？`;
+ const id='xtown372_'+Date.now().toString(36);
+ const card=`<div class="xtown372 oocAsk371" id="${id}"><div>🗺️ ${html}</div><div class="row"><button class="btn sm" data-xtown372="yes" data-id="${id}">是，前往（${esc(dist)}）</button><button class="btn g sm" data-xtown372="no" data-id="${id}">先不要</button></div></div>`;
+ V372.xtown={id,place:Object.assign({},place,{confirmed:true,crosstown:false})};
+ const box=(typeof isPriv371==='function'&&isPriv371())?$('#pv35Log'):$('#msgs');
+ if(box){box.insertAdjacentHTML('beforeend',card);box.scrollTop=box.scrollHeight}
+ else if(typeof toast==='function')toast(html);
+ return{ok:false,why:'confirm',msg:`到「${tn}」要走約 ${dist}，已詢問是否出發`,est}}
+document.addEventListener('click',async e=>{const b=e.target.closest&&e.target.closest('[data-xtown372]');if(!b)return;e.preventDefault();e.stopPropagation();
+ const ok=b.dataset.xtown372==='yes';const el=$('#'+b.dataset.id);if(el)el.remove();const p=V372.xtown;V372.xtown=null;
+ if(ok&&p&&p.place){const r=await goPlace371(Object.assign({},p.place,{confirmed:true,crosstown:false}));if(typeof toast==='function')toast(r.ok?r.msg:(r.msg||'沒辦法過去'))}
+},true);
+function goResolved372(place,opt){return goPlace371(place,opt)}
+{const _rp=typeof resolvePlace371==='function'?resolvePlace371:null;if(_rp){V372._resolvePlaceOrig=_rp;resolvePlace371=function(q,opt){try{const r=resolveDest372(q,opt);if(r)return r}catch(e){console.warn('resolveDest372',e)}return _rp.apply(this,arguments)}}}
+{const _gp=typeof goPlace371==='function'?goPlace371:null;if(_gp)goPlace371=async function(place,opt){
+  if(place&&place.crosstown&&!place.confirmed)return showCrossTown372(place);
+  if(place&&place.kind==='missing')return _gp.apply(this,arguments);
+  const who=(opt&&opt.who)||[];
+  const dest=place&&(place.loc||place.id);
+  const from=S&&S.loc;
+  if(place&&place.kind==='loc'&&dest&&from&&!sameTown372(from,dest)&&(typeof isFar==='function'?(isFar(from)||isFar(dest)):true)&&typeof travel==='function'&&place.confirmed){
+   const fol=typeof followWho371==='function'?followWho371(who):[];
+   if(typeof isPriv371==='function'&&isPriv371()){try{await privLeave35()}catch(e){}}
+   await travel(dest);
+   fol.forEach(c=>{if(S.chars[c]){S.chars[c].loc=S.loc;S.chars[c].stay={loc:S.loc,until:(typeof tsNow==='function'?tsNow():0)+3}}});
+   return{ok:true,msg:`來到了${LOCS[S.loc]?LOCS[S.loc].name:dest}`}
+  }
+  return _gp.apply(this,arguments)}
+}
+function rewriteChoiceText372(c,loc){c=String(c||'');loc=loc||(S&&S.loc);
+ const m=c.match(/^(前往)(.+)$/);if(!m)return c;const dest=m[2].trim();
+ if(/地圖|四周/.test(dest))return c;
+ // 地下城房间选项不改
+ try{if(LOCS[loc]&&LOCS[loc].dungeon)return c}catch(e){}
+ const named=townNamedIn372(dest);
+ if(named&&named===areaKey372(loc))return c;
+ if(named&&named!==areaKey372(loc)){
+  // 他镇专名：保留但标出城镇，避免被误以为是本地
+  return c}
+ const pl=resolveDest372(dest,{loc});
+ if(!pl)return c;
+ if(pl.kind==='loc'&&sameTown372(loc,pl.loc)){
+  const area=areaKey372(pl.loc);const an=area==='home'?'':((LOCS[area]&&LOCS[area].name)||'');
+  const nm=pl.name||(LOCS[pl.loc]&&LOCS[pl.loc].name);
+  if(an&&nm&&nm.indexOf(an)<0)return'前往'+an+'的'+nm;
+  return'前往'+nm}
+ if(pl.kind==='priv')return'前往'+(pl.label||pl.name);
+ if(pl.kind==='missing'&&pl.local){const kind=kindOf372(dest);const area=areaKey372(loc);const an=area==='home'?'':((LOCS[area]&&LOCS[area].name)||'這裡');
+  return kind?('去'+an+'的'+kind.label):c}
+ if(pl.crosstown)return c;
+ // 通用词指到了外镇（旧解析）：改成本地说法
+ if(isGenericQuery372(dest,loc)||HOME_NAMES372[dest]){const kind=kindOf372(dest);const area=areaKey372(loc);const an=(area&&area!=='home'&&LOCS[area])?LOCS[area].name:'這裡';
+  return kind?('去'+an+'的'+kind.label):c}
+ return c}
+function rewriteChoices372(list,loc){return(list||[]).map(c=>rewriteChoiceText372(c,loc))}
+{const _pt=typeof parseTags==='function'?parseTags:null;if(_pt)parseTags=function(raw){const ops=_pt.apply(this,arguments);try{ops.forEach(op=>{if(op&&op.t==='choices'&&Array.isArray(op.v))op.v=rewriteChoices372(op.v)})}catch(e){}return ops}}
+{const _fc=typeof fixChoices==='function'?fixChoices:null;if(_fc)fixChoices=function(list){const r=_fc.apply(this,arguments);try{if(r&&r.list)r.list=rewriteChoices372(r.list)}catch(e){}return r}}
+{const _rc=typeof renderChoices==='function'?renderChoices:null;if(_rc)renderChoices=function(){try{const la=typeof lastAI==='function'?lastAI():(L&&L[L.length-1]);if(la&&Array.isArray(la.choices))la.choices=rewriteChoices372(la.choices)}catch(e){}return _rc.apply(this,arguments)}}
+{const _oc=typeof onChoice==='function'?onChoice:null;if(_oc)onChoice=function(c){if(BUSY||!S)return _oc.apply(this,arguments);
+  const t=String(c||'');
+  try{if(LOCS[S.loc]&&LOCS[S.loc].dungeon)return _oc.apply(this,arguments);
+   const x=typeof choiceTarget34==='function'?choiceTarget34(t):null;if(x)return _oc.apply(this,arguments);
+   const m=t.match(/^前往(.+)$/)||t.match(/^去(.+)$/);
+   if(m){const pl=resolvePlace371(m[1]);if(pl){if(typeof pushMsg==='function')pushMsg({role:'user',text:`（${t}）`});goPlace371(pl);return}}}catch(e){console.warn('onChoice372',e)}
+  return _oc.apply(this,arguments)}}
+{const _wr=typeof wmResolve==='function'?wmResolve:null;if(_wr)wmResolve=function(name){const n=String(name||'').trim();
+  try{if(S&&LOCS[S.loc]&&LOCS[S.loc].dungeon)return _wr.apply(this,arguments);
+   if(isGenericQuery372(n,S.loc)||HOME_NAMES372[n]||kindOf372(n)){const pl=resolveDest372(n);
+    if(pl&&pl.crosstown&&!pl.confirmed){V372._storyCross=pl;return null}
+    if(pl&&pl.kind==='missing'){V372._storyMiss=pl;return null}
+    if(pl&&pl.kind==='loc')return pl.loc;
+    if(pl&&pl.kind==='priv')return null}}catch(e){console.warn('wmResolve372',e)}
+  return _wr.apply(this,arguments)}}
+{const _pa=typeof playAI==='function'?playAI:null;if(_pa)playAI=async function(){const r=await _pa.apply(this,arguments);
+  try{const miss=V372._storyMiss;const cross=V372._storyCross;V372._storyMiss=null;V372._storyCross=null;
+    // AI 故事標籤：跨鎮一律不自動走、也不跳出發確認，改列本鎮／附近選項
+    if(miss&&typeof showPlaceOffers371==='function')showPlaceOffers371(miss);
+    else if(cross){const q=cross.q||cross.name||cross.label||'';const offers=cross.offers||nearbyOffers372(q,S&&S.loc);
+     if(typeof showPlaceOffers371==='function')showPlaceOffers371({kind:'missing',q,offers})}
+  }catch(e){}
+  return r}}
+
+/* ---------- v3.7.2：所有移動路徑走同一解析器；控制標籤絕不進敘事 ---------- */
+const HOME_IDS372={market:1,tavern:1,dorm:1,guild:1,smithy:1,river:1,forest:1};
+const CTRL_TAGS372='acts|act|actions|tool_call|toolcall|function_call|invoke';
+function isCrossTownMove372(from,to){
+ if(!from||!to||from===to)return false;
+ try{if(sameTown372(from,to))return false}catch(e){}
+ try{const a=LOCS[from],b=LOCS[to];if(a&&b&&a.dungeon&&b.dungeon&&a.dungeon===b.dungeon)return false}catch(e){}
+ try{if(typeof isFar==='function'&&!isFar(from)&&!isFar(to))return false}catch(e){}
+ return true}
+function isHomeGeneric372(q,loc){q=String(q||'').trim();
+ return isGenericQuery372(q,loc)||!!HOME_NAMES372[q]||!!kindOf372(q)||!!(HOME_IDS372[q]&&loc&&!isHomeArea372(loc))}
+function parseActsJson372(j){const acts=[];const tryP=x=>{try{const a=JSON.parse(x);(Array.isArray(a)?a:[a]).forEach(v=>{if(v&&typeof v==='object')acts.push(v)});return true}catch(e){return false}};
+ const s=String(j||'').trim().replace(/^```(?:json)?\s*|\s*```$/ig,'');if(tryP(s))return acts;
+ const m=s.match(/\[[\s\S]*\]|\{[\s\S]*\}/);if(m)tryP(m[0]);return acts}
+function extractCtrlTags372(raw){raw=String(raw==null?'':raw);const acts=[];const reBlk=new RegExp('<(?:'+CTRL_TAGS372+')\\b[^>]*>([\\s\\S]*?)</(?:'+CTRL_TAGS372+')\\s*>','ig');
+ raw=raw.replace(reBlk,(_,j)=>{acts.push.apply(acts,parseActsJson372(j));return''});
+ const reOpen=new RegExp('<(?:'+CTRL_TAGS372+')\\b[^>]*>([\\s\\S]*)$','ig');
+ raw=raw.replace(reOpen,(_,j)=>{const tm=String(j).match(/^\s*(\[[\s\S]*?\]|\{[\s\S]*?\})/);if(tm){acts.push.apply(acts,parseActsJson372(tm[1]));return String(j).slice(tm[0].length)}acts.push.apply(acts,parseActsJson372(j));return''});
+ raw=raw.replace(new RegExp('</?(?:'+CTRL_TAGS372+')\\b[^>]*>?','ig'),'');
+ raw=raw.replace(/\s*\[\{\s*"k"\s*:\s*"(?:outfit|move|emotion|equip|give|take|scene|location|unequip)"[\s\S]*?\}\]\s*/g,m=>{acts.push.apply(acts,parseActsJson372(m));return' '});
+ raw=raw.replace(/[ \t]+\n/g,'\n').replace(/\n{3,}/g,'\n\n').replace(/[ \t]{2,}/g,' ').trim();
+ return{raw,acts}}
+function stripCtrlTags372(s){return extractCtrlTags372(s).raw}
+function mergeActs372(a,b){const out=[],seen=new Set();(a||[]).concat(b||[]).forEach(x=>{if(!x||typeof x!=='object')return;const k=JSON.stringify(x);if(seen.has(k))return;seen.add(k);out.push(x)});return out}
+function offerOrIgnore372(q,from){from=from||(S&&S.loc);q=String(q||'');
+ const local=q?bestLocal372(q,from):null;
+ if(local&&local.kind==='loc'&&!isCrossTownMove372(from,local.loc))return{ok:true,to:local.loc,place:local};
+ const miss=(local&&local.kind==='missing')?local:{kind:'missing',q,offers:nearbyOffers372(q,from)};
+ if(typeof showPlaceOffers371==='function'&&(miss.offers||[]).length)showPlaceOffers371(miss);
+ return{ok:false,why:'ai-crosstown',miss}}
+{const _rd=resolveDest372;resolveDest372=function(q,opt={}){q=String(q||'').trim();
+  try{const loc=opt.loc||(typeof isPriv371==='function'&&isPriv371()?PR35.loc:S&&S.loc)||(S&&S.loc);
+   if(HOME_IDS372[q]&&loc&&!isHomeArea372(loc)){const by=_rd(LOCS[q]&&LOCS[q].name||q,opt);if(by)return by}}catch(e){}
+  return _rd.apply(this,arguments)}}
+{const _pl=typeof placesAt371==='function'?placesAt371:null;if(_pl)placesAt371=function(loc){const r=_pl.apply(this,arguments);
+  try{loc=loc||(typeof isPriv371==='function'&&isPriv371()?PR35.loc:S&&S.loc)||(S&&S.loc);
+   r.pubs=(r.pubs||[]).filter(p=>sameTown372(loc,p.loc)||!HOME_IDS372[p.loc])}catch(e){}
+  return r}}
+{const _gp=typeof goPlace371==='function'?goPlace371:null;if(_gp)goPlace371=async function(place,opt={}){
+  const ai=!!(opt.ai||opt.source==='ai'||V372._aiMove);
+  const dest=place&&(place.loc||place.id);const from=S&&S.loc;
+  if(place&&place.confirmed){V372._allowTravel=1;try{return await _gp.apply(this,arguments)}finally{V372._allowTravel=0}}
+  if(ai&&place&&(place.crosstown||(place.kind==='loc'&&dest&&from&&isCrossTownMove372(from,dest)))){
+    const q=place.q||place.name||(LOCS[dest]&&LOCS[dest].name)||String(dest||'');
+    const g=offerOrIgnore372(q,from);if(g.ok&&g.place)return _gp.call(this,g.place,opt);
+    return{ok:false,why:'ai-crosstown'}}
+  return _gp.apply(this,arguments)}}
+{const _aa=typeof applyActsList371==='function'?applyActsList371:null;if(_aa)applyActsList371=async function(acts,opt={}){
+  const player=!!(opt&&opt.asked&&opt.asked.some(a=>a.k==='move'));
+  const prev=V372._aiMove;if(!player)V372._aiMove=1;
+  try{return await _aa.apply(this,arguments)}finally{V372._aiMove=prev}}}
+{const _ex=typeof extractActsBlock371==='function'?extractActsBlock371:null;if(_ex)extractActsBlock371=function(raw){
+  const x=extractCtrlTags372(raw);const acts=mergeActs372(x.acts,V372._replyActs);
+  return{raw:x.raw,acts}}}
+{const _sy=typeof syncFromReply371==='function'?syncFromReply371:null;if(_sy)syncFromReply371=async function(raw,opt={}){
+  const prev=V372._aiMove;const player=!!(opt&&opt.asked&&opt.asked.some(a=>a.k==='move'));
+  if(!player)V372._aiMove=1;try{return await _sy.apply(this,arguments)}finally{V372._aiMove=prev}}}
+{const _ao=typeof applyOp==='function'?applyOp:null;if(_ao)applyOp=function(op,msg){
+  try{if(op&&S&&!V372._allowTravel){const a=op.a||{};
+    const block=(name)=>{const pl=resolveDest372(name);if(!pl)return true;
+     if(pl.kind==='missing'){V372._storyMiss=pl;return true}
+     if(pl.crosstown||(pl.kind==='loc'&&isCrossTownMove372(S.loc,pl.loc||pl.id))){const q=pl.q||pl.name||name;V372._storyMiss={kind:'missing',q,offers:pl.offers||nearbyOffers372(q,S.loc)};return true}
+     return false};
+    if(op.t==='scene'&&a.location&&block(a.location)){op={t:op.t,a:Object.assign({},a,{location:undefined}),v:op.v,raw:op.raw};}
+    if(op.t==='move'&&a.to&&block(a.to)){return}
+    if(op.t==='enter'){const name=a.area||a.name||a.to||'';if(name&&block(name))return}
+  }}catch(e){console.warn('applyOp372',e)}
+  return _ao.call(this,op,msg)}}
+{const _sm=typeof storyMove==='function'?storyMove:null;if(_sm)storyMove=function(to){
+  try{if(S&&isCrossTownMove372(S.loc,to)){const q=(LOCS[to]&&LOCS[to].name)||to;const g=offerOrIgnore372(q,S.loc);if(g.ok&&g.to)return _sm.call(this,g.to);return}}catch(e){console.warn('storyMove372',e)}
+  return _sm.apply(this,arguments)}}
+{const _tr=typeof travel==='function'?travel:null;if(_tr)travel=async function(to){
+  try{if(!V372._allowTravel&&S&&isCrossTownMove372(S.loc,to)){
+    if(V372._aiMove){const q=(LOCS[to]&&LOCS[to].name)||to;const g=offerOrIgnore372(q,S.loc);if(g.ok&&g.to){to=g.to}else return}
+    else{showCrossTown372({kind:'loc',id:to,loc:to,name:LOCS[to]&&LOCS[to].name,from:S.loc,crosstown:true});return}
+  }}catch(e){console.warn('travel372',e)}
+  return _tr.apply(this,arguments)}}
+{const _gpb=typeof goPublic371==='function'?goPublic371:null;if(_gpb)goPublic371=async function(loc,who){
+  try{if(!V372._allowTravel&&S&&isCrossTownMove372(S.loc,loc)){
+    if(V372._aiMove){const q=(LOCS[loc]&&LOCS[loc].name)||loc;const g=offerOrIgnore372(q,S.loc);if(g.ok&&g.to)loc=g.to;else return{ok:false,why:'ai-crosstown'}}
+    else{showCrossTown372({kind:'loc',id:loc,loc,name:LOCS[loc]&&LOCS[loc].name,from:S.loc,crosstown:true});return{ok:false,why:'confirm'}}
+  }}catch(e){console.warn('goPublic372',e)}
+  return _gpb.apply(this,arguments)}}
+// resolveLoc 在 app.js 是 const，不能改綁。改掛 hook，wmResolve／applyOp／travel 已走同一套解析。
+V372._resolveLocOrig=resolveLoc;
+function resolveLocSafe372(n){try{const q=String(n||'').trim();if(S&&LOCS[S.loc]&&!LOCS[S.loc].dungeon&&q&&isHomeGeneric372(q,S.loc)){
+  const pl=resolveDest372(HOME_IDS372[q]&&LOCS[q]?LOCS[q].name:q);if(pl&&pl.kind==='loc'&&!isCrossTownMove372(S.loc,pl.loc))return pl.loc;return null}}catch(e){}
+ return V372._resolveLocOrig?V372._resolveLocOrig(n):null}
+{const _wr=typeof wmResolve==='function'?wmResolve:null;if(_wr)wmResolve=function(name){const n=String(name||'').trim();
+  try{if(S&&LOCS[S.loc]&&!LOCS[S.loc].dungeon&&isHomeGeneric372(n,S.loc)){const pl=resolveDest372(HOME_IDS372[n]&&LOCS[n]?LOCS[n].name:n);
+    if(pl&&pl.kind==='loc'&&!isCrossTownMove372(S.loc,pl.loc))return pl.loc;
+    if(pl&&pl.kind==='missing')V372._storyMiss=pl;
+    else if(pl){const q=pl.q||pl.name||n;V372._storyMiss={kind:'missing',q,offers:pl.offers||nearbyOffers372(q,S.loc)}}
+    V372._storyCross=null;return null}}catch(e){}
+  return _wr.apply(this,arguments)}}
+{const _hu=typeof handleUser==='function'?handleUser:null;if(_hu)handleUser=async function(text,opt={}){
+  try{if(!BUSY&&S&&typeof M!=='undefined'&&M){const t=String(text||'').trim();
+    const m=t.match(/^(?:我們?)?(?:前往|去|走去|出發去|動身去|啟程去|回)\s*(.{2,16}?)(?:吧|看看|一趟)?[。！!～~]*$/);
+    if(m){const q=m[1].trim();if(isHomeGeneric372(q,S.loc)||HOME_NAMES372[q]||kindOf372(q)||townNamedIn372(q)||(LOCS[q])||Object.keys(LOCS).some(id=>LOCS[id]&&LOCS[id].name===q)){
+      const pl=resolveDest372(q);if(pl){if(typeof pushMsg==='function')pushMsg({role:'user',text:t});await goPlace371(pl,{});return}}}}
+  }catch(e){console.warn('handleUser372',e)}
+  return _hu.apply(this,arguments)}}
+{const _pt=typeof parseTags==='function'?parseTags:null;if(_pt)parseTags=function(raw){try{if(typeof raw==='string')raw=stripCtrlTags372(raw)}catch(e){}return _pt.call(this,raw)}}
+{const _fmt=typeof fmt==='function'?fmt:null;if(_fmt)fmt=function(t){try{t=stripCtrlTags372(t)}catch(e){}return _fmt.call(this,t)}}
+{const _sl=typeof stripTagsLive==='function'?stripTagsLive:null;if(_sl)stripTagsLive=function(s){try{s=stripCtrlTags372(s)}catch(e){}return _sl.call(this,s)}}
+{const _sa=typeof stripAllTags35==='function'?stripAllTags35:null;if(_sa)stripAllTags35=function(t){try{t=stripCtrlTags372(t)}catch(e){}return _sa.call(this,t)}}
+{const _pp=typeof parsePriv35==='function'?parsePriv35:null;if(_pp)parsePriv35=function(raw){try{raw=stripCtrlTags372(raw)}catch(e){}return _pp.call(this,raw)}}
+{const _pai=typeof playAI==='function'?playAI:null;if(_pai)playAI=async function(raw,meta){
+  const x=extractCtrlTags372(raw);V372._replyActs=x.acts;const prev=V372._aiMove;V372._aiMove=1;
+  try{return await _pai.call(this,x.raw,meta)}finally{V372._aiMove=prev;V372._replyActs=null}}}
+{const _it=typeof intentText35==='function'?intentText35:null;if(_it)intentText35=function(){let t=_it.apply(this,arguments);
+  try{const loc=S&&S.loc;const local=(typeof locsInTown372==='function'?locsInTown372(areaKey372(loc)):[]).map(k=>LOCS[k]&&LOCS[k].name).filter(Boolean);
+   const names=local.length?local.join('、'):((LOCS[loc]&&LOCS[loc].name)||'這裡');
+   t+='\n【本鎮可去地點】'+names+'。移動標籤的 v 只能用本鎮地點名稱或 id；不要使用其他城鎮的同名場所（例如灰石鎮的「市集廣場」）。若本鎮沒有這個地方，不要輸出 move。'}catch(e){}
+  return t}}
+
+/* ---------- v3.7.2：地圖「繪製這裡」沿用 c37()，Qwen 2.1 佈局參考圖 ---------- */
+const MAP_NEG372='text, letters, words, labels, captions, watermark, signature, compass rose, legend, frame, border, people, characters';
+function align32_372(n){n=Math.max(32,Math.round(+n||0));return Math.round(n/32)*32}
+function mapLayer372(){try{if(typeof LV_VIEW!=='undefined'&&LV_VIEW==='continent')return'continent';
+ if(typeof lvCur==='function'){const v=lvCur();if(v==='continent')return'continent';if(v==='region')return'region';if(v==='area'||v==='room')return((typeof WM_MODE!=='undefined'&&WM_MODE==='town')||!(S&&LOCS[S.loc]&&LOCS[S.loc].far))?'town':'area'}
+ if(typeof WM_MODE!=='undefined'&&WM_MODE==='town')return'town';
+ if(M&&M.view&&M.view.scale>60)return(!(S&&LOCS[S.loc]&&LOCS[S.loc].far)?'town':'area')}catch(e){}
+ return'region'}
+function mapSize372(layer){layer=layer||mapLayer372();
+ if(layer==='town'||layer==='area'){try{const ts=M&&M.townSize;if(ts&&ts.w>ts.h*1.1)return{w:1184,h:864}}catch(e){}return{w:1024,h:1024}}
+ return{w:896,h:672}}
+function mapSeed372(key){const n=typeof hstr==='function'?hstr(String(key||'map')):0;return(n>>>0)||1}
+function mapTimeWeather372(map){let time='白天，柔和日光';
+ try{if(map&&map.isNight)time='夜晚，月光與柔和燈火';
+  else if(typeof S!=='undefined'&&S&&typeof S.slot==='number')time=['清晨的薄光','上午的日光','正午的明亮日光','黃昏的暖金色光','夜晚的月光與燈火'][S.slot]||time}catch(e){}
+ return time}
+function mapPrompt372(layer,o,ctx){const tw=mapTimeWeather372((ctx&&ctx.map)||(o&&o.map)||(typeof M!=='undefined'?M:null));
+ const noTxt='畫面上完全沒有任何文字、字母、標籤、邊框、指北針、圖例，也沒有人物。';
+ if(layer==='town'||layer==='area')return'把 <image1> 重繪成 2.5D 半寫實奇幻風格的俯視手繪遊戲地圖，中世紀奇幻小鎮。嚴格保持 <image1> 的佈局：每個深色方塊都是一棟建築，位置、大小和朝向都不變；淺色線是石板道路；藍色是河流與水面。繪畫感的細緻光影，'+tw+'。'+noTxt;
+ return'俯視奇幻區域地圖，保持 <image1> 的山脈、森林、河流、海岸線與道路位置。2.5D 半寫實奇幻風格的俯視手繪遊戲地圖，繪畫感的細緻光影，'+tw+'。'+noTxt}
+function mapPromptBundle372(o,ctx){return{prompt:mapPrompt372((o&&o.layer)||mapLayer372(),o,ctx),negative:MAP_NEG372}}
+function mapPaintBounds372(o,map){const layer=(o&&o.layer)||mapLayer372();map=map||(typeof M!=='undefined'?M:null);
+ try{if(layer==='continent'&&map){const ps=(map.places||[]).filter(p=>p&&(p.region||p.home||p.far));if(ps.length){const xs=ps.map(p=>p.x),ys=ps.map(p=>p.y),pad=8;return[Math.min.apply(null,xs)-pad,Math.min.apply(null,ys)-pad,Math.max.apply(null,xs)+pad,Math.max.apply(null,ys)+pad]}}
+  if(layer==='region'&&map){const R=map.region;if(R&&R.w)return[(R.cx||0)-R.w/2,(R.cy||0)-R.h/2,(R.cx||0)+R.w/2,(R.cy||0)+R.h/2];
+   if(typeof regionOfLoc==='function'&&typeof ckm==='function'&&typeof S!=='undefined'){const r=regionOfLoc(S.loc);if(r&&r.box){const c1=ckm(r.box[0],r.box[1]),c2=ckm(r.box[2],r.box[3]);return[Math.min(c1.x,c2.x),Math.min(c1.y,c2.y),Math.max(c1.x,c2.x),Math.max(c1.y,c2.y)]}}}
+  if((layer==='town'||layer==='area')&&map&&map.townSize&&(layer==='town'||!(typeof S!=='undefined'&&S&&LOCS[S.loc]&&LOCS[S.loc].far))){const ts=map.townSize;return[-ts.w/2,-ts.h/2,ts.w/2,ts.h/2]}}catch(e){}
+ const sk=(o&&o.sizeKm)||8,x=o&&o.x,y=o&&o.y;if(x!=null&&y!=null)return[x-sk/2,y-sk/2,x+sk/2,y+sk/2];return null}
+function mapLayoutCanvas372(req,ctx,sz,layer){const map=(ctx&&ctx.map)||(typeof M!=='undefined'?M:null);
+ layer=layer||(req&&req.layer)||mapLayer372();sz=sz||mapSize372(layer);
+ const w=align32_372(sz.w),h=align32_372(sz.h);
+ const c=document.createElement('canvas');c.width=w;c.height=h;const g=c.getContext('2d');
+ g.fillStyle='#e6d7b8';g.fillRect(0,0,w,h);
+ const b=(req&&req.bounds)||mapPaintBounds372(req||{},map)||[-1,-1,1,1];
+ const toC=(wx,wy)=>[(wx-b[0])/Math.max(1e-6,b[2]-b[0])*w,(wy-b[1])/Math.max(1e-6,b[3]-b[1])*h];
+ if(map&&typeof map.sample==='function'&&typeof map.biomeOf==='function'){const pal=(map.theme()&&map.theme().pal)||{};const step=4;
+  for(let j=0;j<h;j+=step)for(let i=0;i<w;i+=step){const x=b[0]+(b[2]-b[0])*i/w,y=b[1]+(b[3]-b[1])*j/h;let bm;try{bm=map.biomeOf(map.sample(x,y))}catch(e){bm=null}
+   g.fillStyle=(bm==='ocean'||bm==='lake')?'#4a90c0':(pal[bm]||'#c8b992');g.fillRect(i,j,step,step)}}
+ g.lineCap=g.lineJoin='round';
+ const roads=(map&&map.roads)||[];
+ for(const rd of roads){if(!rd||!rd.pts||!rd.pts.length)continue;g.beginPath();rd.pts.forEach((p,i)=>{const q=toC(p[0],p[1]);i?g.lineTo(q[0],q[1]):g.moveTo(q[0],q[1])});g.strokeStyle='#e8dcc4';g.lineWidth=(layer==='town'||layer==='area')?5:2.8;g.stroke()}
+ if(layer==='town'||layer==='area'){const places=((map&&map.places)||[]).filter(p=>p&&p.x>=b[0]&&p.x<=b[2]&&p.y>=b[1]&&p.y<=b[3]&&!p.region);
+  for(const p of places){const q=toC(p.x,p.y);const bw=p.inner||p.type==='homeloc'?26:20;const bh=bw*(0.72+((typeof hstr==='function'?hstr(p.id||p.name||''):0)%5)/12);
+   g.fillStyle='#3a2c22';g.fillRect(q[0]-bw/2,q[1]-bh/2,bw,bh)}}
+ // 無文字、標籤、圖例、人物、指北針
+ return c}
+function mapArtCfg372(){const c=typeof c37==='function'?c37():{};const url=(typeof c37Base==='function'?c37Base():(c.url||'')).trim().replace(/\/+$/,'')||'http://127.0.0.1:8000';
+ return{url:url,token:c.token||'',unet:c.unet,clip:c.clip,vae:c.vae,tpl:c.tpl||'qwen21'}}
+function mapArtErr372(err){const raw=String((err&&err.message)||err||'');
+ const url=mapArtCfg372().url;
+ if(/Failed to fetch|NetworkError|Load failed|CORS|Failed to load|network error|連不上|fetch/i.test(raw)){
+  return'無法連到 ComfyUI'+(raw&&!/無法連到/.test(raw)?'（'+raw.slice(0,80)+'）':'')+'。請依序檢查：'
+   +'① 埠號改沿用「設定 → 🎨 繪圖／ComfyUI」的連線網址（Desktop 版預設 http://127.0.0.1:8000，免安裝版是 8188；舊地圖設定預設 8188 已不再使用）。目前網址：'+url+'。'
+   +'② CORS：ComfyUI Desktop → 設定 → Server-Config → Enable CORS header 必須完全等於 https://gamer0819-hue.github.io（不要結尾斜線）；本機檔可用 *。'
+   +'③ Chrome「存取本機網路裝置」權限需允許。'
+   +'④ 在瀏覽器打開 '+url+'/system_stats 確認 ComfyUI 活著。'}
+ if(typeof c37Suggest372==='function'){const fix=c37Suggest372(raw);if(fix)return(raw.slice(0,160)+(fix?'。建議：'+fix:''))}
+ return raw||'繪製失敗'}
+function c37MapGraph372(p,c){p=p||{};c=c||(typeof c37==='function'?c37():{});
+ const wf={};const T=(id,ct,inp,title)=>{wf[id]={class_type:ct,inputs:inp,_meta:{title:title}}};
+ T('1','UNETLoader',{unet_name:c.unet,weight_dtype:'default'},'月影_主模型');let mid='1';
+ if(c.qwenCache!==false&&c.hasQwenCache372){T('11','QwenImage21Cache',{model:['1',0],device:'cpu',dtype:'default'},'月影_快取');mid='11'}
+ T('2','CLIPLoader',{clip_name:c.clip,type:c.clipType||'qwen_image',device:'cpu'},'月影_文字編碼器');
+ T('3','VAELoader',{vae_name:c.vae},'月影_VAE');
+ if(c.qwenShift){T('4','ModelSamplingAuraFlow',{model:[mid,0],shift:+c.shift||3.1},'月影_取樣偏移');mid='4'}
+ const ei=c.encIn||{};const inp={};inp[ei.clip||'clip']=['2',0];inp[ei.prompt||'prompt']=p.prompt||'';inp[ei.neg||'negative_prompt']=p.negative||MAP_NEG372;
+ inp[ei.res||'resolution']=0;inp[ei.vae||'vae']=['3',0];
+ const ref=(p.refs&&p.refs[0])||'';T('20','LoadImage',{image:ref},'月影_參考圖1');
+ const imgKey=(ei.images&&ei.images[0])||'images.image_1';inp[imgKey]=['20',0];
+ T('5','TextEncodeQwenImage21',inp,'月影_正向提示詞');
+ T('8','KSampler',{seed:p.seed,steps:+c.steps||25,cfg:+(p.cfg!=null?p.cfg:c.cfg)||1,sampler_name:c.sampler||'euler',scheduler:c.scheduler||'simple',denoise:1,model:[mid,0],positive:['5',0],negative:['5',1],latent_image:['5',2]},'月影_種子');
+ T('9','VAEDecode',{samples:['8',0],vae:['3',0]},'月影_解碼');
+ const layer=p.mapLayer||p.layer||'area';const key=String(p.locKey||p.key||'map').replace(/[^\w\u4e00-\u9fff\-]+/g,'_').slice(0,40);
+ T('10','SaveImage',{filename_prefix:'月影物語/地圖/'+layer+'_'+key,images:['9',0]},'月影_輸出');
+ return wf}
+function mapCustomWorkflow372(){try{const s=(CFG&&CFG.mapArt&&CFG.mapArt.workflow)||'';if(!s||!String(s).trim())return null;return typeof safeJSON==='function'?safeJSON(s):JSON.parse(s)}catch(e){return null}}
+async function nextMapArtKey372(base){const DB=WorldMap.Art&&WorldMap.Art.db;if(!DB||!base)return base;
+ try{if(!(await DB.get(base)))return base;for(let i=2;i<99;i++){const k=base+':v'+i;if(!(await DB.get(k)))return k}return base+':v'+Date.now()}catch(e){return base+':v'+Date.now()}}
+async function latestMapArtKey372(base){const DB=WorldMap.Art&&WorldMap.Art.db;if(!DB||!base)return null;
+ try{let hit=null;if(await DB.get(base))hit=base;for(let i=2;i<99;i++){const k=base+':v'+i;if(await DB.get(k))hit=k;else if(hit)break}return hit}catch(e){return null}}
+async function genMapArt372(req,ctx,cfg){const c=typeof c37==='function'?c37():{};const was=c.on;c.on=true;
+ try{const layer=req.layer||mapLayer372();const sz=mapSize372(layer);const bounds=req.bounds||mapPaintBounds372(Object.assign({},req,{layer}),(ctx&&ctx.map)||M);
+  req.layer=layer;if(bounds)req.bounds=bounds;
+  const canvas=mapLayoutCanvas372(req,ctx,sz,layer);const dataURL=canvas.toDataURL('image/png');
+  const seed=req.seed!=null?req.seed:mapSeed372(req.key||(req.place&&req.place.id)||'map');
+  const bundle=mapPromptBundle372(req,ctx);const wasRef=c.maxRef;if(!(+c.maxRef>0))c.maxRef=1;
+  V372._mapReq={kind:'map',mapLayout:1,mapLayer:layer,locKey:req.key,res:0,prefix:'月影物語/地圖/'+layer+'_'+String(req.key||'map')};
+  try{const url=await c37Run({kind:'map',label:'地圖・'+(layer==='town'?'城鎮':layer==='continent'?'大陸':'大區'),prompt:bundle.prompt,negative:bundle.negative,w:sz.w,h:sz.h,seed:seed,refs:[dataURL],res:0,mapLayout:1,mapLayer:layer,locKey:req.key,key:req.key,force:true});
+   return await(await fetch(url)).blob()}
+  finally{c.maxRef=wasRef;V372._mapReq=null}}
+ finally{c.on=was}}
+function hookMapArt372(art){if(!art||art._m372)return;art._m372=1;
+ const _req=art.request.bind(art);art.request=function(o){o=Object.assign({},o||{});o.layer=o.layer||mapLayer372();const r=_req(o);
+  if(r){r.layer=o.layer||r.layer;const bb=mapPaintBounds372(r,art.map);if(bb)r.bounds=bb;const pr=mapPromptBundle372(r,{map:art.map});r.prompt=pr.prompt;r.negative=pr.negative}return r};
+ const _pump=art._pump.bind(art);art._pump=async function(){if(this.busy)return _pump();const o=this.queue[0];if(!o)return _pump();
+  try{const base=o.key;if(o.force){const nxt=await nextMapArtKey372(base);if(nxt&&nxt!==base){o.baseKey=base;o.key=nxt}o.force=false}
+   else{const latest=await latestMapArtKey372(base);if(latest)o.key=latest}}catch(e){console.warn('mapArtKey372',e)}
+  return _pump()};
+ const _em=art.emit.bind(art);art.emit=function(e,d){if(e==='progress'&&d&&d.state==='failed')d=Object.assign({},d,{error:mapArtErr372(d.error)});return _em(e,d)}}
+{const _ao=typeof artOpts==='function'?artOpts:null;if(_ao)artOpts=function(){const o=_ao.apply(this,arguments);
+  try{if(o&&(o.provider==='comfyui'||o.provider==='comfy37')){const c=mapArtCfg372();o.config=Object.assign({},o.config||{},{url:c.url,token:c.token,fromC37:true})}}catch(e){}
+  return o}}
+function hookMapProviders372(){try{const P=WorldMap.Art&&WorldMap.Art.providers;if(!P)return;
+  const wrap=orig=>async function(req,ctx,cfg){try{return await genMapArt372(req,ctx,cfg||this&&this.config)}catch(e){throw new Error(mapArtErr372(e))}};
+  if(P.comfyui&&!P.comfyui._g372){P.comfyui._g372=P.comfyui.generate;P.comfyui.generate=wrap(P.comfyui.generate)}
+  if(P.comfy37&&!P.comfy37._g372){P.comfy37._g372=P.comfy37.generate;P.comfy37.generate=wrap(P.comfy37.generate)}}catch(e){console.warn('hookMapProviders372',e)}}
+hookMapProviders372();
+{const _cp=typeof c37Provider==='function'?c37Provider:null;if(_cp)c37Provider=function(){const r=_cp.apply(this,arguments);try{hookMapProviders372()}catch(e){}return r}}
+{const _cr=WorldMap&&WorldMap.Art&&WorldMap.Art.create;if(_cr&&!WorldMap.Art._c372){WorldMap.Art._c372=1;WorldMap.Art.create=function(){const art=_cr.apply(this,arguments);try{hookMapArt372(art)}catch(e){}return art}}
+ if(typeof ART!=='undefined'&&ART)try{hookMapArt372(ART)}catch(e){}}
+{const _q=typeof c37Qwen==='function'?c37Qwen:null;if(_q)c37Qwen=function(p,c){if(p&&(p.kind==='map'||p.mapLayout)){const custom=mapCustomWorkflow372();if(custom)return(typeof c37Inject==='function'?c37Inject(custom,p):custom);return c37MapGraph372(p,c)}return _q.apply(this,arguments)}}
+{const _wf=typeof c37Workflow==='function'?c37Workflow:null;if(_wf)c37Workflow=function(p){if(p&&(p.kind==='map'||p.mapLayout)){const custom=mapCustomWorkflow372();const wf=custom?(typeof c37Inject==='function'?c37Inject(custom,p):custom):c37MapGraph372(p,typeof c37==='function'?c37():{});return typeof c37Inject==='function'?c37Inject(wf,p):wf}return _wf.apply(this,arguments)}}
+{const _ex=typeof c37Exec==='function'?c37Exec:null;if(_ex)c37Exec=async function(job){const q=job&&job.req;if(q&&(q.kind==='map'||q.mapLayout)){const c=c37();const prevR=c.maxRef;try{if(!(+c.maxRef>0))c.maxRef=1;if(!c.enc){c.enc='TextEncodeQwenImage21';c.encIn=Object.assign({prompt:'prompt',clip:'clip',vae:'vae',neg:'negative_prompt',res:'resolution',images:['images.image_1','images.image_2']},c.encIn||{})}return await _ex.apply(this,arguments)}finally{c.maxRef=prevR}}return _ex.apply(this,arguments)}}
+function paintMapArtCfg372(){const box=typeof $==='function'?$('#mapArtCfg [data-ma="comfyui"]'):null;if(!box||box.querySelector('.maC37note372'))return;
+ const c=mapArtCfg372();const on=typeof c37On==='function'&&c37On();
+ const note=`<div class="note maC37note372">地圖繪製的 ComfyUI 連線已改為沿用「設定 → 🎨 繪圖／ComfyUI」：目前網址 <code>${esc(c.url)}</code>${on?'（已啟用）':'（尚未啟用時，仍會用此網址與模型出圖）'}。下面的舊欄位會繼續保存以便相容，但不再作為實際連線（舊預設 8188／SD1.5 已停用）。內建改為 Qwen 2.1 佈局參考圖。CORS 請填 <code>https://gamer0819-hue.github.io</code>（不要結尾斜線）。可打開 <code>${esc(c.url)}/system_stats</code> 確認服務活著；Chrome 請允許「存取本機網路裝置」。</div>`;
+ box.insertAdjacentHTML('afterbegin',note);
+ const wf=$('#maWf');if(wf&&!wf.value)wf.placeholder='留空＝沿用 Qwen 2.1 佈局參考圖（不再使用內建 SD1.5）'}
+{const _os=typeof openSettings==='function'?openSettings:null;if(_os)openSettings=function(tab,focus){const r=_os.apply(this,arguments);try{if(tab==='map')paintMapArtCfg372()}catch(e){}return r}}
 
 /* v3.3：手機版——側欄改成抽屜；點遮罩或選了項目就收起 */
 (function(){const tb=$('#topbar');if(!tb)return;
