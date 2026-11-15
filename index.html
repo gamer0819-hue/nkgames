@@ -7661,7 +7661,7 @@ async function c37Upload(dataURL,i){const b=await c37PngBlob(dataURL);const fd=n
  const r=await c37Fetch('/upload/image',{method:'POST',body:fd},{timeout:30000});if(!r.ok)throw new Error('參考圖上傳失敗（HTTP '+r.status+'）');const j=await r.json();return(j.subfolder?j.subfolder+'/':'')+j.name}
 async function c37Exec(job){const c=c37();const q=job.req;const p={kind:q.kind||'img',prompt:q.prompt,negative:q.negative||'',seed:q.seed!=null?q.seed:Math.floor(Math.random()*1e9),w:q.w||c.res,h:q.h||c.res,refs:[]};
  for(let i=0;i<Math.min((q.refs||[]).length,(c.tpl==='qwen21'&&!c.enc)||c.tpl==='sd'?0:Math.min(2,+c.maxRef||0));i++)p.refs.push(await c37Upload(q.refs[i],i));
- const wf=c37Workflow(p);const cid='moonshadow_'+uid('c');let ws=null;
+ const wf=c37Workflow(p);job.wf=wf;job.done=new Set();job.pct=1;job.tRun=Date.now();const cid='moonshadow_'+uid('c');let ws=null;
  try{ws=await c37WS(cid,job)}catch(e){ws=null}
  const r=await c37Fetch('/prompt',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:wf,client_id:cid})},{timeout:30000});
  let j={};try{j=await r.json()}catch(e){}if(!r.ok||j.error){if(ws)ws.close();throw new Error(c37Err(j,r.status))}
@@ -7677,8 +7677,9 @@ async function c37Exec(job){const c=c37();const q=job.req;const p={kind:q.kind||
 function c37WS(cid,job){return new Promise((res,rej)=>{let ws;try{ws=new WebSocket(c37Base().replace(/^http/,'ws')+'/ws?clientId='+encodeURIComponent(cid))}catch(e){return rej(e)}const tm=setTimeout(()=>{try{ws.close()}catch(e){}rej(new Error('ws timeout'))},3000);
  ws.onopen=()=>{clearTimeout(tm);res(ws)};ws.onerror=()=>{clearTimeout(tm);rej(new Error('ws'))};
  ws.onmessage=ev=>{if(typeof ev.data!=='string')return;let m;try{m=JSON.parse(ev.data)}catch(e){return}const d=m.data||{};if(job.pid&&d.prompt_id&&d.prompt_id!==job.pid)return;
-  if(m.type==='progress'){job.started=true;job.pct=d.max?Math.round(d.value/d.max*100):0;job.msg=`出圖中 ${job.pct}%`;c37UI()}
-  else if(m.type==='executing'){if(d.node===null&&d.prompt_id===job.pid)job.wsDone=true;else if(d.prompt_id===job.pid){job.started=true;job.msg='執行中…';c37UI()}}
+  if(m.type==='progress'){job.started=true;job.step=[d.value,d.max];c37Prog(job)}
+  else if(m.type==='executing'){if(d.node===null&&d.prompt_id===job.pid)job.wsDone=true;else if(d.prompt_id===job.pid){job.started=true;if(job.node!=null&&job.node!==d.node)job.done.add(String(job.node));job.node=d.node;job.step=null;c37Prog(job)}}
+  else if(m.type==='execution_cached'){(d.nodes||[]).forEach(n=>job.done&&job.done.add(String(n)));c37Prog(job)}
   else if(m.type==='execution_start'){job.started=true;job.msg='開始出圖…';c37UI()}
   else if(m.type==='execution_error'){job.wsErr=d.exception_message||'execution_error'}
   else if(m.type==='execution_success'){job.wsDone=true}}})}
@@ -7686,6 +7687,16 @@ async function c37Cancel(id){const j=C37Q.list.find(x=>x.id===id);if(!j)return;j
  try{if(j.pid){if(j.started)await c37Fetch('/interrupt',{method:'POST'});else await c37Fetch('/queue',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({delete:[j.pid]})})}}catch(e){}
  if(j.state==='wait'&&!C37Q.cur){j.state='fail';j.msg='已取消';C37Q.list=C37Q.list.filter(x=>x!==j);try{j.rej(Object.assign(new Error('已取消'),{cancel:1}))}catch(e){}c37UI()}
  else if(j.state==='wait'&&C37Q.cur!==j){j.state='fail';j.msg='已取消';C37Q.list=C37Q.list.filter(x=>x!==j);try{j.rej(Object.assign(new Error('已取消'),{cancel:1}))}catch(e){}c37UI()}}
+// 出圖進度：整體百分比＋目前階段＋步數＋已用秒數（取樣約占七成時間）
+function c37Stage(job){const n=job.wf&&job.node!=null&&job.wf[job.node];const t=n?String(n.class_type||''):'';
+ if(/KSampler|Sampler/i.test(t))return'取樣';if(/Loader|LoadCheckpoint/i.test(t))return'載入模型';if(/TextEncode|CLIP/i.test(t))return'讀提示詞';if(/VAEDecode/i.test(t))return'解碼';if(/VAEEncode/i.test(t))return'讀參考圖';if(/LoadImage/i.test(t))return'讀圖片';if(/Save/i.test(t))return'存檔';if(/Composite/i.test(t))return'貼回臉部';return'處理中'}
+function c37Prog(job){const tot=job.wf?Object.keys(job.wf).length:0;const dn=job.done?job.done.size:0;const st=c37Stage(job);let pct;
+ if(job.step&&job.step[1]){pct=30+Math.round(job.step[0]/job.step[1]*65)}
+ else if(st==='解碼'||st==='存檔'||st==='貼回臉部')pct=96;
+ else pct=Math.min(30,2+Math.round(tot?dn/tot*28:0));
+ job.pct=Math.max(job.pct||0,pct);const sec=Math.round((Date.now()-(job.tRun||Date.now()))/1000);
+ job.msg=`出圖中 ${job.pct}%・${st}${job.step&&job.step[1]?` ${job.step[0]}/${job.step[1]} 步`:''}・已 ${sec} 秒`;c37UI()}
+setInterval(()=>{try{if(typeof C37Q!=='undefined'&&C37Q.cur&&C37Q.cur.state==='run'&&C37Q.cur.started)c37Prog(C37Q.cur);else if(typeof C37Q!=='undefined'&&C37Q.cur&&C37Q.cur.state==='run'&&C37Q.cur.tRun&&!C37Q.cur.started){const j=C37Q.cur;j.msg=`等 ComfyUI 開始…・已 ${Math.round((Date.now()-j.tRun)/1000)} 秒`;c37UI()}}catch(e){}},1000);
 function c37UI(){let box=$('#c37job');const L2=C37Q.list;if(!L2.length){if(box)box.remove();return}if(!box){document.body.insertAdjacentHTML('beforeend','<div id="c37job"></div>');box=$('#c37job')}
  box.innerHTML=`<b>🎨 ComfyUI 出圖</b>${L2.map(j=>`<div class="c37row ${j.state}"><div class="c37lbl">${esc(j.req.label||'圖片')}・${j.state==='fail'?'❌ ':''}${esc(j.msg||(j.state==='wait'?'排隊中':''))}</div>${j.state==='run'?`<div class="c37bar"><i style="width:${j.pct||3}%"></i></div>`:''}${j.state!=='fail'&&j.state!=='done'?`<button class="btn g sm" data-c37cancel="${j.id}">取消</button>`:''}</div>`).join('')}`}
 document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-c37cancel]');if(b){e.preventDefault();c37Cancel(b.dataset.c37cancel)}});
