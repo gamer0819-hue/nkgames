@@ -7753,6 +7753,7 @@ function c37SetHTML(){const c=c37();const sel=(id,v,o)=>`<select id="${id}">${Ob
  <div class="setgrid"><div><label>逾時（秒，60–600）</label><input type="number" id="c37To" min="60" max="600" value="${c.timeout}"></div><div><label>參考圖上限</label>${sel('c37Ref',c.maxRef,{0:'0 張（純文字）',1:'1 張',2:'2 張（建議）'})}</div><div><label>解析度（長邊）</label>${sel('c37Res',c.res,{512:'512',640:'640',768:'768（建議）',1024:'1024'})}</div></div>
  <label class="sw"><input type="checkbox" id="c37AutoP" ${c.autoFill.por?'checked':''}> 自動補缺少的立繪（預設關閉＝要你按了才畫；開啟後每張約 1–3 分鐘，在背景排隊）</label>
  <label class="sw"><input type="checkbox" id="c37AutoS" ${c.autoFill.scene?'checked':''}> 自動補缺少的場景圖（預設關閉）</label>
+ <label>文字編碼器（讀提示詞）用 <select id="c37ClipDev"><option value="gpu" ${c.clipDev!=='cpu'?'selected':''}>顯示卡（快，建議）</option><option value="cpu" ${c.clipDev==='cpu'?'selected':''}>CPU（省顯存，很慢）</option></select></label>
  <label class="sw"><input type="checkbox" id="c37Free" ${c.freeAfter?'checked':''}> 出圖前卸載語言模型（出完圖呼叫 ComfyUI <code>/free</code> 釋放顯存，讓語言模型能重新載入）</label>
  <div class="note">🧠 <b>LM Studio 和 ComfyUI 分開運行</b>：遊戲會等 AI 回完話才送出圖工作，一次只送一張，不會兩邊同時搶顯卡。遊戲不會去控制 LM Studio；如果兩個都開在同一張 16GB 顯卡上，建議在 LM Studio 開「JIT 載入＋閒置自動卸載（TTL）」，或出圖前在終端機執行 <code>lms unload --all</code>。ComfyUI 端可把 CLIPLoader 的 device 設成 cpu（高峰約降到 9–10GB，編碼會慢一點）。驗證：工作管理員 → 效能 → GPU，「共用 GPU 記憶體」往上爬就代表顯存爆了。</div>
  <details><summary>遠端 ComfyUI（RunPod 等）</summary><label>Token（選填，只存在這個瀏覽器，不寫進檔案）</label><input type="password" id="c37Tok" value="${esc(c.token)}" autocomplete="off"><div class="note">網址改成對方給的 https://…，其餘相同。</div></details>
@@ -7761,7 +7762,7 @@ function c37SetHTML(){const c=c37();const sel=(id,v,o)=>`<select id="${id}">${Ob
 function c37Read(){const c=c37();const v=id=>($('#'+id)||{}).value;const ck=id=>!!($('#'+id)||{}).checked;if(!$('#c37set'))return c;
  c.on=ck('c37On');c.url=(v('c37Url')||C37_DEF.url).trim();c.tpl=v('c37Tpl')||'qwen21';c.unet=v('c37Unet')||c.unet;c.clip=v('c37Clip')||c.clip;c.vae=v('c37Vae')||c.vae;c.ckpt=v('c37Ckpt')||c.ckpt;c.custom=v('c37Custom')||'';
  const sp=String(v('c37Samp')||'').split('/').map(x=>x.trim());if(sp[0])c.steps=Math.max(1,Math.min(150,+sp[0]||25));if(sp[1])c.cfg=+sp[1]||1;if(sp[2])c.sampler=sp[2];if(sp[3])c.scheduler=sp[3];
- c.timeout=Math.max(60,Math.min(600,+v('c37To')||240));c.maxRef=Math.max(0,Math.min(2,+v('c37Ref')));c.res=+v('c37Res')||768;c.autoFill={por:ck('c37AutoP'),scene:ck('c37AutoS')};c.freeAfter=ck('c37Free');c.token=(v('c37Tok')||'').trim();return c}
+ c.timeout=Math.max(60,Math.min(600,+v('c37To')||240));c.maxRef=Math.max(0,Math.min(2,+v('c37Ref')));c.res=+v('c37Res')||768;c.autoFill={por:ck('c37AutoP'),scene:ck('c37AutoS')};c.freeAfter=ck('c37Free');{const e=document.getElementById('c37ClipDev');if(e)c.clipDev=e.value==='cpu'?'cpu':'gpu'}c.token=(v('c37Tok')||'').trim();return c}
 {const _os=openSettings;openSettings=function(tab,focus){const T=tab==='draw37';_os(T?'game':tab,focus);const st=$('#mbox .stabs');if(!st)return;
  if(!st.querySelector('[data-stab="draw37"]'))st.insertAdjacentHTML('beforeend','<button class="tab" data-stab="draw37">🎨 繪圖／ComfyUI</button>');if(!T)return;
  st.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.stab==='draw37'));const mb=$('#mbox');[...mb.children].forEach(ch=>{if(ch!==st&&!ch.matches('h2')&&!ch.matches('.row:last-child'))ch.remove()});
@@ -8737,7 +8738,7 @@ function c37PortraitGraph372(p,c){p=p||{};c=c||(typeof c37==='function'?c37():{}
  const mode=p.porMode||'new';const wf={};const T=(id,ct,inp,title)=>{wf[id]={class_type:ct,inputs:inp,_meta:{title:title}}};
  T('1','UNETLoader',{unet_name:c.unet,weight_dtype:'default'},'月影_主模型');let mid='1';
  if(c.qwenCache!==false&&c.hasQwenCache372){T('11','QwenImage21Cache',{model:['1',0],device:'cpu',dtype:'default'},'月影_快取');mid='11'}
- T('2','CLIPLoader',{clip_name:c.clip,type:c.clipType||'qwen_image',device:'cpu'},'月影_文字編碼器');
+ T('2','CLIPLoader',{clip_name:c.clip,type:c.clipType||'qwen_image',device:c.clipDev==='cpu'?'cpu':'default'},'月影_文字編碼器');
  T('3','VAELoader',{vae_name:c.vae},'月影_VAE');
  if(c.qwenShift){T('4','ModelSamplingAuraFlow',{model:[mid,0],shift:+c.shift||3.1},'月影_取樣偏移');mid='4'}
  const ei=c.encIn||{},refs=p.refs||[],inp={};inp[ei.clip||'clip']=['2',0];inp[ei.prompt||'prompt']=p.prompt||'';inp[ei.neg||'negative_prompt']=p.negative||'';
@@ -8820,7 +8821,7 @@ function c37Qwen21Graph372(p,c){p=p||{};c=c||(typeof c37==='function'?c37():{});
  T('1','UNETLoader',{unet_name:c.unet,weight_dtype:'default'},'月影_主模型');
  let mid='1';
  if(c.qwenCache!==false&&c.hasQwenCache372){T('11','QwenImage21Cache',{model:['1',0],device:'cpu',dtype:'default'},'月影_快取');mid='11'}
- T('2','CLIPLoader',{clip_name:c.clip,type:c.clipType||'qwen_image',device:'cpu'},'月影_文字編碼器');
+ T('2','CLIPLoader',{clip_name:c.clip,type:c.clipType||'qwen_image',device:c.clipDev==='cpu'?'cpu':'default'},'月影_文字編碼器');
  T('3','VAELoader',{vae_name:c.vae},'月影_VAE');
  if(c.qwenShift){T('4','ModelSamplingAuraFlow',{model:[mid,0],shift:+c.shift||3.1},'月影_取樣偏移');mid='4'}
  const cap=Math.max(0,Math.min(16,+(c.maxRef||0)));
@@ -9546,7 +9547,7 @@ function c37MapGraph372(p,c){p=p||{};c=c||(typeof c37==='function'?c37():{});
  const wf={};const T=(id,ct,inp,title)=>{wf[id]={class_type:ct,inputs:inp,_meta:{title:title}}};
  T('1','UNETLoader',{unet_name:c.unet,weight_dtype:'default'},'月影_主模型');let mid='1';
  if(c.qwenCache!==false&&c.hasQwenCache372){T('11','QwenImage21Cache',{model:['1',0],device:'cpu',dtype:'default'},'月影_快取');mid='11'}
- T('2','CLIPLoader',{clip_name:c.clip,type:c.clipType||'qwen_image',device:'cpu'},'月影_文字編碼器');
+ T('2','CLIPLoader',{clip_name:c.clip,type:c.clipType||'qwen_image',device:c.clipDev==='cpu'?'cpu':'default'},'月影_文字編碼器');
  T('3','VAELoader',{vae_name:c.vae},'月影_VAE');
  if(c.qwenShift){T('4','ModelSamplingAuraFlow',{model:[mid,0],shift:+c.shift||3.1},'月影_取樣偏移');mid='4'}
  const ei=c.encIn||{};const inp={};inp[ei.clip||'clip']=['2',0];inp[ei.prompt||'prompt']=p.prompt||'';inp[ei.neg||'negative_prompt']=p.negative||MAP_NEG372;
