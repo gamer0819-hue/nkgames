@@ -10146,6 +10146,149 @@ function b4Want(t){if(!S||BUSY||!LOCS[S.loc]||LOCS[S.loc].dungeon)return null;if
 function stripChoices372b4(t){return String(t||'').replace(/<choices>[\s\S]*?(?:<\/choices>|$)/ig,' ').replace(/\[choices\][\s\S]*?(?:\[\/choices\]|$)/ig,' ')}
 {const _im=inferMoveFromText371;inferMoveFromText371=function(text){return _im.call(this,stripChoices372b4(text))}}
 
+/* =====================================================================
+   v3.7.2 D6（Neil 2026-11-16）：故事／私下空間「回覆長度」選項
+   簡短 80–200 字、一般 200–400 字、豐富 400–700 字。
+   預設「一般」：試玩與 Isekai Zero 對照都指出目前回覆太短太單調，
+   而本機 LM Studio 小模型在「豐富」時較慢、也較容易重複。
+   只改寫既有的字數／段數那一句，不另加長篇系統提示。
+   OOC 與其他短回覆（maxTokens 200 等）不調整。
+   ===================================================================== */
+const REPLY_LEN372B5={
+ short:{id:'short',label:'簡短',hint:'80–200 字',
+  story:'回覆 80 到 200 字',
+  priv:'每次回覆 1～4 段，簡短，留給玩家回應的空間。',
+  extra:'',minTok:700,timeout:90000},
+ mid:{id:'mid',label:'一般',hint:'200–400 字',
+  story:'回覆 200 到 400 字',
+  priv:'每次回覆 3～6 段，把場面寫清楚，仍留給玩家回應的空間。',
+  extra:'多寫環境、感官與在場角色的動作反應；不要替玩家說話或決定行動；不要重複上一則已寫過的開場。',
+  minTok:1200,timeout:180000},
+ long:{id:'long',label:'豐富',hint:'400–700 字',
+  story:'回覆 400 到 700 字',
+  priv:'每次回覆 5～8 段，寫得更豐富，仍留給玩家回應的空間。',
+  extra:'多寫環境、感官與在場角色的動作反應；不要替玩家說話或決定行動；不要重複上一則已寫過的開場或描寫。',
+  minTok:2000,timeout:240000}
+};
+const STORY_LEN_RE372B5=/回覆 2 到 6 行|回覆 \d+ 到 \d+ 字/g;
+const PRIV_LEN_RE372B5=/每次回覆 1～4 段，簡短，留給玩家回應的空間。|每次回覆 \d+～\d+ 段[^。\n]*。/g;
+
+function isLocalAI372b5(p){
+ try{
+  p=p||(typeof activeProfile==='function'?activeProfile():null);
+  if(!p)return false;
+  if(p.provider==='lmstudio'||p.provider==='ollama')return true;
+  if(typeof PROVIDERS==='object'&&PROVIDERS[p.provider]&&PROVIDERS[p.provider].local)return true;
+  return /localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\]/.test(String(p.base||''));
+ }catch(e){return false}
+}
+function replyLenKey372b5(){
+ const v=typeof CFG==='object'&&CFG?CFG.replyLen:'';
+ return REPLY_LEN372B5[v]?v:'mid';
+}
+function replyLenSpec372b5(){return REPLY_LEN372B5[replyLenKey372b5()]}
+function applyStoryLen372b5(s){
+ const sp=replyLenSpec372b5();s=String(s||'').replace(STORY_LEN_RE372B5,sp.story);
+ if(sp.extra&&s.includes(sp.story)&&!s.includes(sp.extra))s=s.replace(sp.story,sp.story+'。'+sp.extra);
+ return s;
+}
+function applyPrivLen372b5(s){
+ const sp=replyLenSpec372b5();
+ const line=sp.priv+(sp.extra?sp.extra:'');
+ return String(s||'').replace(PRIV_LEN_RE372B5,line);
+}
+function storyCallOpts372b5(o){
+ o=Object.assign({},o||{});
+ const sp=replyLenSpec372b5();
+ let cap=sp.minTok;
+ try{const p=typeof activeProfile==='function'?activeProfile():null;if(p&&+p.maxTokens>cap)cap=+p.maxTokens}catch(e){}
+ try{if(typeof contextSettings==='function'){const r=+contextSettings().response;if(r>cap)cap=r}}catch(e){}
+ o.maxTokens=Math.max(+o.maxTokens||0,cap);
+ if(o.timeout==null||o.timeout<sp.timeout)o.timeout=sp.timeout;
+ return o;
+}
+function setReplyLen372b5(k,src){
+ if(!REPLY_LEN372B5[k])k='mid';
+ const prev=typeof CFG==='object'&&CFG?CFG.replyLen:undefined;
+ try{CFG.replyLen=k;if(typeof saveCfg==='function')saveCfg()}catch(e){}
+ try{syncReplyLenUI372b5()}catch(e){}
+ const sp=REPLY_LEN372B5[k];
+ if(src==='init'||prev===k)return k;
+ try{
+  if(k==='long'&&isLocalAI372b5()&&typeof toast==='function')toast('本機較小的模型用「豐富」會比較慢，也比較容易重複；若不順再改回「一般」。');
+  else if(typeof toast==='function')toast('已設定故事回覆長度：'+sp.label+'（'+sp.hint+'）');
+ }catch(e){}
+ return k;
+}
+
+function replyLenSelectHTML372b5(id){
+ const cur=replyLenKey372b5();
+ return `<select id="${id}" class="rlen372b5" title="故事回覆長度">${['short','mid','long'].map(k=>{const x=REPLY_LEN372B5[k];return `<option value="${k}" ${k===cur?'selected':''}>${x.label} ${x.hint}</option>`}).join('')}</select>`;
+}
+function syncReplyLenUI372b5(){
+ const cur=replyLenKey372b5();
+ ['replyLenQuick372b5','replyLenSet372b5'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=cur});
+}
+function mountReplyLen372b5(){
+ if(document.getElementById('replyLenQuick372b5')){syncReplyLenUI372b5();return}
+ const q=document.getElementById('profQuick');if(!q)return;
+ if(!document.getElementById('rlen372b5css')){
+  const st=document.createElement('style');st.id='rlen372b5css';
+  st.textContent='#replyLenWrap372b5{margin-top:8px;width:100%;font-size:11px;color:var(--mut)}#replyLenWrap372b5 label{display:block;margin:0 0 4px}#replyLenQuick372b5,.rlen372b5{width:100%;background:#16121e;color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:4px;font-size:12px}.rlen372b5note{margin:4px 0 0;font-size:11px;color:var(--mut);line-height:1.5}';
+  document.head.appendChild(st);
+ }
+ q.insertAdjacentHTML('afterend',`<div id="replyLenWrap372b5"><label for="replyLenQuick372b5">回覆長度</label>${replyLenSelectHTML372b5('replyLenQuick372b5')}</div>`);
+}
+
+/* 設定 → AI 連線：跟 Gemini 思考強度放在一起 */
+{const _os=openSettings;openSettings=function(tab){const r=_os.apply(this,arguments);try{
+ if((tab||'api')!=='api')return r;
+ const mb=document.getElementById('mbox');if(!mb||mb.querySelector('#replyLenSet372b5'))return r;
+ const html=`<div class="row rlen372b5row" style="flex-wrap:wrap;align-items:center;gap:8px"><label style="margin:0">故事回覆長度 ${replyLenSelectHTML372b5('replyLenSet372b5')}</label><span class="note rlen372b5note" style="margin:0">寫給故事與私下空間的字數。簡短是原本的長度；一般或豐富會多寫環境與在場角色反應，仍不替玩家說話。本機較小模型建議用簡短或一般；雲端（Gemini）可用一般或豐富。「豐富」在本機上較慢，也比較容易重複。不會改低你在「最大回覆長度」設得更高的數字，也不影響 OOC 短回覆。</span></div>`;
+ const gem=mb.querySelector('#gemThink37');
+ const host=gem&&(gem.closest('.row')||gem.parentElement);
+ if(host)host.insertAdjacentHTML('afterend',html);
+ else{const rows=mb.querySelectorAll(':scope>.row');const last=rows[rows.length-1];if(last)last.insertAdjacentHTML('beforebegin',html);else mb.insertAdjacentHTML('beforeend',html)}
+}catch(e){}return r}}
+
+document.addEventListener('change',e=>{
+ const t=e.target;if(!t||(t.id!=='replyLenQuick372b5'&&t.id!=='replyLenSet372b5'))return;
+ setReplyLen372b5(t.value,'ui');
+});
+
+/* 提示詞：只替換原本那一句，不另開章節 */
+{const _rt=typeof rulesText==='function'?rulesText:null;
+ if(_rt)rulesText=function(){return applyStoryLen372b5(_rt.apply(this,arguments))}}
+{const _sp=typeof sysPrompt==='function'?sysPrompt:null;
+ if(_sp)sysPrompt=function(){return applyStoryLen372b5(_sp.apply(this,arguments))}}
+{const _ps=typeof privSystem35==='function'?privSystem35:null;
+ if(_ps)privSystem35=function(){return applyPrivLen372b5(_ps.apply(this,arguments))}}
+
+/* 上下文預留與送出的 maxTokens：只提高下限，不改低使用者設得更高的值 */
+{const _cs=typeof contextSettings==='function'?contextSettings:null;
+ if(_cs)contextSettings=function(){const c=_cs.apply(this,arguments);try{
+  const floor=replyLenSpec372b5().minTok;
+  const room=Math.max(100,(+c.context||12000)-500);
+  if(c.response<floor)c.response=Math.min(floor,room);
+ }catch(e){}return c}}
+
+/* 主線／私下空間：補足 tokens 與逾時；OOC 等短呼叫不走這裡 */
+function withStoryCall372b5(fn){
+ return async function(){
+  const prev=callModel;
+  callModel=function(messages,o){return prev.call(this,messages,storyCallOpts372b5(o))};
+  try{return await fn.apply(this,arguments)}
+  finally{callModel=prev};
+ };
+}
+if(typeof liveReply==='function')liveReply=withStoryCall372b5(liveReply);
+if(typeof privSend35==='function')privSend35=withStoryCall372b5(privSend35);
+
+{const _rq=typeof renderProfileQuick==='function'?renderProfileQuick:null;
+ if(_rq)renderProfileQuick=function(){const r=_rq.apply(this,arguments);try{mountReplyLen372b5();syncReplyLenUI372b5()}catch(e){}return r}}
+try{mountReplyLen372b5()}catch(e){}
+try{NEWS34.push('✍️ v3.7.2：設定與左側「回覆長度」可選簡短 80–200 字、一般 200–400 字、豐富 400–700 字。預設一般；本機較小模型建議不要用豐富。')}catch(e){}
+
 /* v3.3：手機版——側欄改成抽屜；點遮罩或選了項目就收起 */
 (function(){const tb=$('#topbar');if(!tb)return;
  tb.insertAdjacentHTML('afterbegin','<button class="mobbtn" id="mobNav" title="選單" aria-label="選單">☰</button>');
