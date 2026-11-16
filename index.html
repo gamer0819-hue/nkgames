@@ -9901,7 +9901,8 @@ function b3CharByName(n){if(!n||!S)return null;const k=b3Norm(n);for(const c of 
  const r=typeof resolveChar==='function'?resolveChar(n):null;if(r&&CHARS[r]){const a=b3Norm(nm(r));if(a===k||(k.length>=2&&(a.includes(k)||k.includes(a))))return r}return null}
 /* ---------- 解析「建立 X 角色」 ---------- */
 function parseCreate372b(t){t=String(t||'').trim().replace(/^[【\[（(]+|[】\]）)]+$/g,'').replace(/[。！!～~]+$/,'').trim();if(!t||t.length>40)return null;
- const pre='^(?:請|請你|幫我|替我|麻煩|麻煩你|我要|我想)?\\s*';const N='[「『]?\\s*([^\\s「」『』，,。、：:；;]{1,12}?)\\s*[」』]?';
+ const pre='^(?:請|你|幫我|替我|麻煩|我要|我想|可以|幫忙)*\\s*';
+ if(/^(?:請|你|幫我|替我|麻煩|我要|我想|可以|幫忙)*\s*(?:建立|新增|創建|創造|生成)\s*(?:新的?)?\s*(?:角色|人物|NPC|角色卡)\s*$/i.test(t))return{name:null};const N='[「『]?\\s*([^\\s「」『』，,。、：:；;]{1,12}?)\\s*[」』]?';
  const K='(?:角色卡|角色|人物|NPC|npc)';const Q='(?:一個|一位|一名)?(?:長期|正式|新的?|固定)?';
  const P=[[new RegExp(pre+'(?:建立|新增|創建|創造|生成|做)\\s*(?:新的?)?'+K+'\\s*[：:]?\\s*'+N+'\\s*$','i'),1],
   [new RegExp(pre+'(?:建立|新增|創建|創造|生成)\\s*'+N+'\\s*(?:這個|這位|那位|的)?\\s*'+K+'\\s*$','i'),1],
