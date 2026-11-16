@@ -1217,14 +1217,14 @@ a.keyget372{color:var(--gold);text-decoration:underline;text-underline-offset:2p
     }
     // painterly overlay: soft vignette + paper texture
     if (th.mode === 'wild') { g.globalAlpha = .08; g.fillStyle = this._paperPattern(g); g.fillRect(0, 0, W, H); g.globalAlpha = 1; }
-    // AI-painted region overlays
-    for (const a of this.artTiles) { if (!a.img) continue; const p = this._toScreen(a.b[0], a.b[1]); const w = (a.b[2] - a.b[0]) * s, h = (a.b[3] - a.b[1]) * s; if (p[0] > W || p[1] > H || p[0] + w < 0 || p[1] + h < 0) continue; g.globalAlpha = a.alpha == null ? .92 : a.alpha; g.drawImage(a.img, p[0], p[1], w, h); g.globalAlpha = 1; }
     // painted region tier (mid zoom), feathered into procedural terrain
     const paintOK = this.genre === ((this.region && this.region.genre) || this.paintedGenre || 'fantasy'); const rimg = paintOK && this.region && (this.regionImgs[this.isNight ? 'night' : 'day'] || this.regionImgs.day);
     if (rimg) { const R = this.region; const p = this._toScreen((R.cx || 0) - R.w / 2, (R.cy || 0) - R.h / 2); g.globalAlpha = .97; g.drawImage(rimg, p[0], p[1], R.w * s, R.h * s); g.globalAlpha = 1; }
     // town inset
     const timg = paintOK && this.townImgs[this.isNight ? 'night' : 'day'] || this.townImgs.day; const tw = this.townSize.w * s; let townA = 0;
     if (timg) { townA = Math.max(0, Math.min(1, (tw - 60) / 200)); if (townA > 0) { const p = this._toScreen(-this.townSize.w / 2, -this.townSize.h / 2); g.globalAlpha = townA; g.drawImage(timg, p[0], p[1], tw, this.townSize.h * s); g.globalAlpha = 1; } }
+    // AI-painted overlays (v3.7.2：畫在原本的區域／小鎮手繪圖之上，否則新圖會被原圖蓋住看不到)
+    for (const a of this.artTiles) { if (!a.img) continue; const p = this._toScreen(a.b[0], a.b[1]); const w = (a.b[2] - a.b[0]) * s, h = (a.b[3] - a.b[1]) * s; if (p[0] > W || p[1] > H || p[0] + w < 0 || p[1] + h < 0) continue; g.globalAlpha = a.alpha == null ? .92 : a.alpha; g.drawImage(a.img, p[0], p[1], w, h); g.globalAlpha = 1; }
     // roads
     g.lineCap = g.lineJoin = 'round';
     for (const rd of this.roads) { if (rd.region && rimg && this.region.hideRoadsOnPainting !== false) continue; g.beginPath(); rd.pts.forEach((p, i) => { const q = this._toScreen(p[0], p[1]); i ? g.lineTo(q[0], q[1]) : g.moveTo(q[0], q[1]); });
@@ -9531,7 +9531,7 @@ function mapLayoutCanvas372(req,ctx,sz,layer){const map=(ctx&&ctx.map)||(typeof 
  for(const rd of roads){if(!rd||!rd.pts||!rd.pts.length)continue;g.beginPath();rd.pts.forEach((p,i)=>{const q=toC(p[0],p[1]);i?g.lineTo(q[0],q[1]):g.moveTo(q[0],q[1])});g.strokeStyle='#e8dcc4';g.lineWidth=(layer==='town'||layer==='area')?5:2.8;g.stroke()}
  if(layer==='town'||layer==='area'){const places=((map&&map.places)||[]).filter(p=>p&&p.x>=b[0]&&p.x<=b[2]&&p.y>=b[1]&&p.y<=b[3]&&!p.region);
   for(const p of places){const q=toC(p.x,p.y);const bw=p.inner||p.type==='homeloc'?26:20;const bh=bw*(0.72+((typeof hstr==='function'?hstr(p.id||p.name||''):0)%5)/12);
-   g.fillStyle='#3a2c22';g.fillRect(q[0]-bw/2,q[1]-bh/2,bw,bh)}}
+   const x0=q[0]-bw/2,y0=q[1]-bh/2;g.fillStyle='rgba(40,30,20,.35)';g.fillRect(x0+3,y0+4,bw,bh);g.fillStyle='#3a2c22';g.fillRect(x0,y0,bw,bh*.62);g.fillStyle='#6b5440';g.fillRect(x0,y0+bh*.62,bw,bh*.38);g.fillStyle='#5a4532';g.fillRect(x0,y0+bh*.3-1,bw,2)}}
  // 無文字、標籤、圖例、人物、指北針
  return c}
 function mapArtCfg372(){const c=typeof c37==='function'?c37():{};const url=(typeof c37Base==='function'?c37Base():(c.url||'')).trim().replace(/\/+$/,'')||'http://127.0.0.1:8000';
@@ -9785,8 +9785,268 @@ const V372B2={};
    const waiting=(typeof V371!=='undefined'&&V371.pending)||document.querySelectorAll('#msgs .oocPick371').length>nPick;
    const t=sp.ooc.join('；').replace(/^[\s【\[]+|[】\]\s]+$/g,'').trim();
    V372B2.play={live,waiting:!!waiting,t};
-   if(live&&!waiting&&t&&!BUSY&&!/[？?]\s*$/.test(t))await _hu.call(this,'*'+t+'*',{mode:'act'})}catch(e){console.warn('oocPlay372',e)}
+   if(live&&!waiting&&t&&!BUSY&&!/[？?]\s*$/.test(t)&&!(typeof oocNoPlay372b==='function'&&oocNoPlay372b(t)))await _hu.call(this,'*'+t+'*',{mode:'act'})}catch(e){console.warn('oocPlay372',e)}
   return r}}
+
+/* ---------- v3.7.2 C6／C7：AI 地圖插圖回傳到遊戲＋沿用原本地圖的視角與畫風 ----------
+   C6：①地圖工作流程沒更新 V372._wfp，送出前的補齊步驟拿上一張立繪的參數（2:3、768×1152、上一張的參考圖），
+       佈局參考圖被當成多餘節點刪掉；②新圖畫在原本區域／小鎮手繪圖「底下」被蓋住；③灰石鎮小鎮畫面是另一個 DOM 地圖，從不讀插圖；
+       ④大陸畫面另外畫，也從不讀插圖。
+   C7：佈局圖是正上方俯視、提示詞寫「俯視」，又沒有原圖可參考 → 生成正上方衛星圖視角。改為把原本地圖當第二張參考圖（只讀不改）、
+       提示詞明確要求 45 度斜俯視 3/4 鳥瞰與原圖同畫風，佈局圖改畫成有屋頂／牆面的立體方塊。原檔一律不覆蓋，新圖另存在 IndexedDB。 */
+const MAP_NEG2_372=', top-down orthographic view, straight overhead view, satellite image, aerial photo, flat vector map, photorealistic, 3d render, modern buildings';
+const MAPREF372={};
+function mapLayerOfKey372(k){const m=String(k||'').match(/@(town|area|region|continent)(?::v\d+)?$/);return m?m[1]:null}
+function mapOrigRefKey372(layer,night){const has=k=>k&&typeof A!=='undefined'&&A[k]?k:null;
+ if(layer==='continent'){const ca=(typeof ATL!=='undefined'&&ATL&&ATL.continent&&ATL.continent.art)||{};return has(night&&ca.night&&'w:'+ca.night)||has(ca.day&&'w:'+ca.day)||has('w:map_continent_day')}
+ if(layer==='region')return has(night&&'region_night')||has('region_day');
+ if(layer==='town')return has(night&&'map_night')||has('map_day');
+ let townish=false;try{const l=S&&LOCS[S.loc];townish=!!(l&&/town|village|harbor|castle|camp/.test(l.role||''))}catch(e){}
+ return townish?(has(night&&'map_night')||has('map_day')||has('region_day')):(has(night&&'region_night')||has('region_day')||has('map_day'))}
+async function mapOrigRef372(layer,night){const k=mapOrigRefKey372(layer,night);if(!k)return null;if(MAPREF372[k])return MAPREF372[k];
+ try{const im=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=A[k]});const sc=Math.min(1,1024/Math.max(im.width,im.height));
+  const c=document.createElement('canvas');c.width=Math.max(1,Math.round(im.width*sc));c.height=Math.max(1,Math.round(im.height*sc));c.getContext('2d').drawImage(im,0,0,c.width,c.height);
+  return MAPREF372[k]=c.toDataURL('image/png')}catch(e){return null}}
+function mapStylePrompt372(layer,o,ctx){const tw=mapTimeWeather372((ctx&&ctx.map)||(o&&o.map)||(typeof M!=='undefined'?M:null));
+ const noTxt='畫面上完全沒有任何文字、字母、標籤、邊框、指北針、圖例，也沒有人物。';
+ const cam='完全沿用 <image2>（遊戲原本的地圖）的鏡頭角度與畫風：約 45 度的斜俯視 3/4 鳥瞰視角，看得到建築的屋頂和正面牆，樹木和山有立體感；不是正上方垂直俯視，也不是衛星圖。同樣的暖色手繪厚塗筆觸、柔和金黃陽光、飽和的草綠與苔綠、清澈的藍色河流、木造與石造的中世紀建築，色調與細節密度和 <image2> 一致。<image2> 只當作視角與畫風參考，不要照抄它的建築位置。';
+ if(layer==='town'||layer==='area')return cam+'地點佈局依照 <image1>：每個深色方塊是一棟建築（深色上半部是屋頂、淺色下半部是正面牆），淺色線是石板道路，藍色是河流與水面，綠色是草地與樹林，位置和大小都不變。畫成和 <image2> 同一套的中世紀奇幻小鎮遊戲地圖，'+tw+'。'+noTxt;
+ if(layer==='continent')return cam+'大陸的陸地、山脈、森林、河流與海岸線依照 <image1> 的位置，不增減地區。畫成和 <image2> 同一套的奇幻大陸遊戲地圖，'+tw+'。'+noTxt;
+ return cam+'區域地形依照 <image1>：山脈、森林、河流、海岸線與道路的位置不變。畫成和 <image2> 同一套的奇幻區域遊戲地圖，'+tw+'。'+noTxt}
+// 提示詞：有原圖可參考時改用「沿用原圖視角＋畫風」；負向提示詞補上正上方俯視／衛星圖
+{const _mp=mapPrompt372;mapPrompt372=function(layer,o,ctx){try{if(mapOrigRefKey372(layer||mapLayer372()))return mapStylePrompt372(layer||mapLayer372(),o,ctx)}catch(e){}return _mp.apply(this,arguments)}}
+{const _mb=mapPromptBundle372;mapPromptBundle372=function(o,ctx){const r=_mb.apply(this,arguments);if(r&&String(r.negative||'').indexOf('orthographic')<0)r.negative=(r.negative||MAP_NEG372)+MAP_NEG2_372;return r}}
+// 大陸：佈局直接用原本的大陸圖（地區位置才對得上大陸畫面的標記）；大小比照原圖 16:10
+{const _ms=mapSize372;mapSize372=function(layer){layer=layer||mapLayer372();if(layer==='continent')return{w:1024,h:640};return _ms.apply(this,arguments)}}
+{const _lc=mapLayoutCanvas372;mapLayoutCanvas372=function(req,ctx,sz,layer){layer=layer||(req&&req.layer)||mapLayer372();
+  if(layer==='continent'){const k=mapOrigRefKey372('continent');const im=k&&typeof lvImg==='function'?lvImg(k):null;
+   if(im){sz=sz||mapSize372('continent');const c=document.createElement('canvas');c.width=align32_372(sz.w);c.height=align32_372(sz.h);c.getContext('2d').drawImage(im,0,0,c.width,c.height);return c}}
+  return _lc.apply(this,arguments)}}
+{const _pb=mapPaintBounds372;mapPaintBounds372=function(o,map){const layer=(o&&o.layer)||mapLayer372();
+  try{if(layer==='continent'&&typeof ckm==='function'&&typeof ATL!=='undefined'&&ATL.continent){const a=ckm(0,0),b=ckm(100,100);return[a.x,a.y,b.x,b.y]}}catch(e){}
+  return _pb.apply(this,arguments)}}
+// Qwen 2.1 地圖工作流程：第二張參考圖＝原本地圖（只讀）
+{const _g=c37MapGraph372;c37MapGraph372=function(p,c){const wf=_g.apply(this,arguments);p=p||{};c=c||(typeof c37==='function'?c37():{});
+  try{const r2=p.refs&&p.refs[1];const enc=wf['5'];if(r2&&enc&&enc.inputs){const ei=c.encIn||{};const k2=(ei.images&&ei.images[1])||'images.image_2';
+    wf['21']={class_type:'LoadImage',inputs:{image:r2},_meta:{title:'月影_參考圖2'}};enc.inputs[k2]=['21',0]}}catch(e){}
+  return wf}}
+// 地圖工作流程也要更新 V372._wfp，否則送出前的補齊會套用上一張立繪的參數（768×1152、刪掉佈局參考圖）
+{const _wf=c37Workflow;c37Workflow=function(p){const wf=_wf.apply(this,arguments);try{if(p&&(p.kind==='map'||p.mapLayout))V372._wfp=Object.assign({},p)}catch(e){}return wf}}
+{const _ex=c37Exec;c37Exec=async function(job){const q=job&&job.req;if(q&&(q.kind==='map'||q.mapLayout)){const c=c37();const prev=c.maxRef;const want=Math.min(2,(q.refs||[]).length||1);
+   try{if(!(+c.maxRef>=want))c.maxRef=want;return await _ex.apply(this,arguments)}finally{c.maxRef=prev}}return _ex.apply(this,arguments)}}
+// 送出地圖工作時自動附上原本地圖當第二張參考圖
+{const _r=c37Run;c37Run=function(req){if(req&&(req.kind==='map'||req.mapLayout)&&req.mapLayer&&!req._sty372){const self=this;
+   return mapOrigRef372(req.mapLayer,typeof M!=='undefined'&&M&&M.isNight).then(ref=>{const q=Object.assign({},req,{_sty372:1});if(ref)q.refs=(req.refs||[]).slice(0,1).concat([ref]);return _r.call(self,q)})}
+  return _r.apply(this,arguments)}}
+// OpenAI 相容（GPT 圖像）：有原本地圖時改走 images/edits，把原圖與佈局圖一起當參考；失敗就回到原本的文字生成
+{const P=WorldMap.Art&&WorldMap.Art.providers;if(P&&P.openai&&!P.openai._g372b){const _og=P.openai.generate;P.openai._g372b=_og;
+  P.openai.generate=async function(req,ctx,cfg){cfg=cfg||{};try{const layer=req.layer||mapLayer372();const ref=await mapOrigRef372(layer,ctx&&ctx.map&&ctx.map.isNight);
+    if(ref&&cfg.apiKey&&/gpt-image/i.test(cfg.model||'gpt-image-1')){const fd=new FormData();fd.append('model',cfg.model||'gpt-image-1');
+     const sz=mapSize372(layer);const lay=mapLayoutCanvas372(Object.assign({},req,{layer}),ctx,sz,layer).toDataURL('image/png');
+     fd.append('image[]',await (await fetch(lay)).blob(),'layout.png');fd.append('image[]',await (await fetch(ref)).blob(),'original_map.png');
+     const pr=mapStylePrompt372(layer,req,ctx).replace(/<image1>/g,'第一張圖').replace(/<image2>/g,'第二張圖');
+     fd.append('prompt',pr+' 避免：'+(req.negative||MAP_NEG372+MAP_NEG2_372));fd.append('size',sz.w>sz.h?'1536x1024':'1024x1024');fd.append('n','1');
+     const r=await fetch((cfg.baseUrl||'https://api.openai.com').replace(/\/$/,'')+'/v1/images/edits',{method:'POST',headers:{Authorization:'Bearer '+cfg.apiKey},body:fd});
+     if(r.ok){const j=await r.json();const d=j.data&&j.data[0];if(d&&d.b64_json){const bin=atob(d.b64_json);const a=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i);return new Blob([a],{type:'image/png'})}if(d&&d.url)return (await fetch(d.url)).blob()}
+     else console.warn('openai edits',r.status)}}catch(e){console.warn('mapOpenAIRef372',e)}
+   return _og.apply(this,arguments)}}}
+function blobToImg372(blob){return new Promise((res,rej)=>{const u=URL.createObjectURL(blob);const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=u})}
+function sameBox372(a,b){if(!a||!b)return false;for(let i=0;i<4;i++)if(Math.abs((+a[i]||0)-(+b[i]||0))>1e-3)return false;return true}
+async function mapArtToTownMap372(key,blob){try{if(typeof S==='undefined'||!S)return;if(typeof mapInit==='function')mapInit();if(S.map.aiDone372===key)return;
+  const night=/:n@/.test(String(key));const f=blob.type?blob:new Blob([blob],{type:'image/png'});const v=typeof mapImgToData==='function'?await mapImgToData(f):await new Promise(rs=>{const fr=new FileReader();fr.onload=()=>rs(fr.result);fr.readAsDataURL(f)});
+  const k=`map_${typeof curSlot==='function'?curSlot():'s1'}_${night?'night':'day'}_ai_${Date.now().toString(36)}`;try{await IDB.set(k,v)}catch(e){}A[k]=v;
+  if(night)S.map.night=k;else{S.map.day=k;if(!S.map.night&&A.map_night){S.map.night='map_night';S.map.aiNight372='map_night'}}
+  S.map.aiDone372=key;S.map.aiKey372=k;try{autosave()}catch(e){}try{renderMap()}catch(e){}}catch(e){console.warn('mapArtToTownMap372',e)}}
+// 修正前用「繪製這裡」畫的整張區域／小鎮圖（直式 768×1152、會被拉長變形）不再套用；圖仍留在 IndexedDB
+function legacyLayerTile372(m,b){try{if(!m||!b)return false;const R=m.region;if(R&&R.w&&sameBox372(b,[(R.cx||0)-R.w/2,(R.cy||0)-R.h/2,(R.cx||0)+R.w/2,(R.cy||0)+R.h/2]))return true;const ts=m.townSize;if(ts&&sameBox372(b,[-ts.w/2,-ts.h/2,ts.w/2,ts.h/2]))return true}catch(e){}return false}
+function hookMapArtB372(art){if(!art||art._m372b)return;art._m372b=1;
+ // 快取鍵加上圖層，之後重新整理才知道這張是小鎮／區域／大陸圖
+ const p0=art._pump.bind(art);art._pump=function(){const o=this.queue[0];if(!this.busy&&o&&o.layer&&!mapLayerOfKey372(o.key))o.key=o.key+'@'+o.layer;return p0()};
+ const a0=art._apply.bind(art);art._apply=async function(key,b,blob){const layer=mapLayerOfKey372(key);if(!layer){if(legacyLayerTile372(this.map,b)){this.map.artTiles=this.map.artTiles.filter(a=>a.key!==key);return}return a0(key,b,blob)}
+  const raw=await blobToImg372(blob);const m=this.map;
+  if(layer==='continent'){V372.contArt={key,img:raw};try{if(typeof LV_VIEW!=='undefined'&&LV_VIEW==='continent')lvDraw()}catch(e){}
+   const t0=m.artTiles.find(a=>a.key===key);if(!t0)m.artTiles.push({key,b,img:null});m.artTiles=m.artTiles.filter(a=>a.key===key||mapLayerOfKey372(a.key)!=='continent');return}
+  const img=m&&typeof m._featherImg==='function'?m._featherImg(raw,'edge'):raw;
+  m.artTiles=m.artTiles.filter(a=>a.key===key||!(mapLayerOfKey372(a.key)===layer&&sameBox372(a.b,b)));
+  let t=m.artTiles.find(a=>a.key===key);if(!t){t={key,b};m.artTiles.push(t)}t.img=img;t.b=b;t.layer=layer;t.alpha=.97;m.redraw();
+  V372.lastMapArt={key,layer,w:raw.width,h:raw.height};
+  if(layer==='town')await mapArtToTownMap372(key,blob)};
+ // 舊版存下來、已有圖層標記的插圖，重新套用一次
+ try{if(art.map&&art.map.artTiles&&art.map.artTiles.some(a=>mapLayerOfKey372(a.key)))art.restore()}catch(e){}}
+{const _h=hookMapArt372;hookMapArt372=function(art){_h.apply(this,arguments);try{hookMapArtB372(art)}catch(e){console.warn('hookMapArtB372',e)}}}
+if(typeof ART!=='undefined'&&ART)try{hookMapArtB372(ART)}catch(e){}
+// 大陸畫面：有 AI 大陸圖就用它，原圖檔不動
+{const _li=typeof lvImg==='function'?lvImg:null;if(_li)lvImg=function(key){try{const a=V372.contArt;const ca=(typeof ATL!=='undefined'&&ATL&&ATL.continent&&ATL.continent.art)||{};
+  if(a&&a.img&&a.img.naturalWidth&&key&&(key==='w:'+ca.day||key==='w:'+ca.night||key==='w:map_continent_day'))return a.img}catch(e){}return _li.apply(this,arguments)}}
+// 一鍵移除 AI 地圖插圖、回到原本地圖（IndexedDB 裡的圖保留，可再套用）
+function mapArtClear372(){try{if(M&&M.artTiles){M.artTiles=M.artTiles.filter(a=>!mapLayerOfKey372(a.key));M.redraw()}V372.contArt=null;
+  if(S&&S.map){if(S.map.aiKey372&&S.map.day===S.map.aiKey372)S.map.day=null;if(S.map.aiKey372&&S.map.night===S.map.aiKey372)S.map.night=null;if(S.map.aiNight372&&S.map.night===S.map.aiNight372)S.map.night=null;delete S.map.aiKey372;delete S.map.aiNight372}
+  try{autosave()}catch(e){}try{renderMap()}catch(e){}try{if(typeof LV_VIEW!=='undefined'&&LV_VIEW)lvDraw()}catch(e){}return true}catch(e){console.warn('mapArtClear372',e);return false}}
+{const _pc=paintMapArtCfg372;paintMapArtCfg372=function(){_pc.apply(this,arguments);try{const box=$('#mapArtCfg');if(box&&!box.querySelector('[data-maclr372]'))box.insertAdjacentHTML('beforeend','<div class="row" style="margin-top:6px"><button class="btn g" data-maclr372="1">↩️ 移除 AI 地圖插圖，用回原本地圖</button></div><div class="note">AI 新圖會依原本地圖的視角與畫風繪製，另外存放，不會覆蓋遊戲原本的地圖檔。</div>')}catch(e){}}}
+document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-maclr372]');if(b){e.preventDefault();mapArtClear372();toast('已移除 AI 地圖插圖，恢復原本地圖')}});
+
+/* =====================================================================
+   v3.7.2 B3／B4（Neil 2026-11-16）
+   B3：OOC「建立 布雅娜 角色」真的建立角色（主畫面與私下時光都一樣）；
+       常用 OOC 指令（給我物品、移除物品、好感、關係、職業）要嘛真的執行、要嘛清楚說不支援；
+       系統／AI 不可以說「已記錄在案」之類卻什麼都沒做。
+   B4：故事裡開口說話的陌生人（不是現有角色）自動登記成這個地點的路人，
+       出現在「場景角色 → 路人」分頁，可以編輯、記為長期角色；OOC 建立同名角色時走「記為長期角色」。
+   ===================================================================== */
+const V372B3={log:[]};
+const B3_BAD_NAME=/^(一個|一位|一名|個|位|名|新|新的|角色|人物|npc|他|她|它|這個人|那個人|這位|那位|我|你|玩家|主角|旁白|系統)$/i;
+const B3_NOT_CHAR=/(立繪|頭像|圖|地圖|背景|場景|規則|物品|道具|裝備|衣服|服裝|任務|記憶|摘要|存檔|技能|地點|房間|事件|天氣|時間|劇情|故事|對話|紀錄)/;
+function b3Norm(n){try{return normName(n)}catch(e){return String(n||'').replace(/\s/g,'')}}
+function b3CharByName(n){if(!n||!S)return null;const k=b3Norm(n);for(const c of Object.keys(CHARS||{}))if(S.chars&&S.chars[c]&&b3Norm(nm(c))===k)return c;
+ const r=typeof resolveChar==='function'?resolveChar(n):null;if(r&&CHARS[r]){const a=b3Norm(nm(r));if(a===k||(k.length>=2&&(a.includes(k)||k.includes(a))))return r}return null}
+/* ---------- 解析「建立 X 角色」 ---------- */
+function parseCreate372b(t){t=String(t||'').trim().replace(/^[【\[（(]+|[】\]）)]+$/g,'').replace(/[。！!～~]+$/,'').trim();if(!t||t.length>40)return null;
+ const pre='^(?:請|請你|幫我|替我|麻煩|麻煩你|我要|我想)?\\s*';const N='[「『]?\\s*([^\\s「」『』，,。、：:；;]{1,12}?)\\s*[」』]?';
+ const K='(?:角色卡|角色|人物|NPC|npc)';const Q='(?:一個|一位|一名)?(?:長期|正式|新的?|固定)?';
+ const P=[[new RegExp(pre+'(?:建立|新增|創建|創造|生成|做)\\s*(?:新的?)?'+K+'\\s*[：:]?\\s*'+N+'\\s*$','i'),1],
+  [new RegExp(pre+'(?:建立|新增|創建|創造|生成)\\s*'+N+'\\s*(?:這個|這位|那位|的)?\\s*'+K+'\\s*$','i'),1],
+  [new RegExp(pre+'(?:把|將)\\s*'+N+'\\s*(?:設為|設成|設定為|設定成|變成|記為|記成|升為|加為|做成|當成|建立成|新增為)\\s*'+Q+K+'\\s*$','i'),1],
+  [new RegExp(pre+'(?:讓|使)\\s*'+N+'\\s*(?:成為|變成|當|升為)\\s*'+Q+K+'\\s*$','i'),1],
+  [new RegExp(pre+'(?:把|將)\\s*'+N+'\\s*(?:建立|新增|創建|做)成?\\s*'+K+'\\s*$','i'),1],
+  [new RegExp(pre+'(?:建立|新增|創建|創造)\\s*'+N+'\\s*$','i'),0]];
+ for(const[re,strong]of P){const m=t.match(re);if(!m)continue;let n=(m[1]||'').replace(/^(新的?)/,'').trim();
+  if(/^(一[個位名]|[個位名])/.test(n))return null; // 「建立一個鐵匠角色」交給原本的流程
+  if(!n||B3_BAD_NAME.test(n)||/^(角色|人物)/.test(n))return strong?{name:null}:null;
+  if(B3_NOT_CHAR.test(n))return null;
+  return{name:n.slice(0,12),strong:!!strong}}
+ if(/^(?:請|幫我)?\s*(?:建立|新增|創建)\s*(?:新的?)?(?:角色|人物)\s*$/.test(t))return{name:null};
+ return null}
+/* ---------- 故事脈絡 ---------- */
+function msgText372b(m){if(!m)return'';if(m.role==='ooc'||m.role==='oocr')return'';if(m.segs&&m.segs.length)return m.segs.map(s=>(s.name||(s.who&&CHARS[s.who]?nm(s.who):''))?((s.name||nm(s.who))+'：'+s.text):s.text).join('\n');
+ return String(m.text||m.raw||'').replace(/<[^>]+>/g,'')}
+function storyCtx372b(name,max=1400){const out=[];const k=String(name||'');if(!k)return'';
+ const src=[].concat((typeof L!=='undefined'?L:[]).slice(-60),(typeof PR35!=='undefined'&&PR35&&PR35.hist)?PR35.hist.slice(-40):[]);
+ for(const m of src){const t=msgText372b(m);if(!t||!t.includes(k))continue;for(const line of t.split(/\n+/)){if(line.includes(k))out.push(line.trim().slice(0,220))}}
+ for(const p of (S&&S.pbStory372)||[])if(p.name===k&&p.desc)out.push(p.desc);
+ return[...new Set(out)].join('\n').slice(-max)}
+function guessPr372b(name,ctx){const i=ctx.indexOf(name);const w=i>=0?ctx.slice(Math.max(0,i-30),i+80):ctx;if(/她|女|娘|姬|婆|妹|姐|姊|嬸|夫人|小姐|少女/.test(w))return'她';if(/他|男|爺|伯|叔|兄|哥|少年|小伙/.test(w))return'他';return'她'}
+const B3_OCC_RE=/(採珠女|潛水女孩|潛水員|女孩|少女|少年|女子|男子|漁夫|漁民|漁家女|商人|攤販|魚販|水手|船長|船員|老人|老婦|婦人|大叔|大嬸|孩子|小孩|守衛|衛兵|士兵|旅人|冒險者|獵人|農夫|鐵匠|店主|老闆娘|老闆|侍女|女僕|修女|祭司|學徒|藥師|巫女|吟遊詩人|酒保|女侍|服務生|村長|鎮長|海女)/;
+function guessOcc372b(name,ctx,tone){if(tone&&/^[\u4e00-\u9fff]{2,6}$/.test(tone)&&B3_OCC_RE.test(tone))return tone;
+ const i=ctx.indexOf(name);const w=i>=0?ctx.slice(Math.max(0,i-24),i+name.length+40):ctx;const m=w.match(B3_OCC_RE);return m?m[1]:''}
+function guessLook372b(name,ctx){const s=ctx.replace(/<[^>]+>/g,'').split(/[。！!？?\n]/).map(x=>x.trim()).filter(x=>x&&x.includes(name)&&!/^[^：]{1,12}：/.test(x));
+ return(s[0]||'').replace(/[「」『』]/g,'').slice(0,80)}
+async function fillChar372b(name,ctx){const base={name,pr:guessPr372b(name,ctx),role:guessOcc372b(name,ctx)||'鎮民',look:guessLook372b(name,ctx),tone:'',desc:''};
+ base.desc=(ctx?('故事中：'+ctx.split('\n').slice(-3).join(' ')).slice(0,110):`${base.role}。`);
+ if(!(CFG.mode==='live'&&typeof canLive==='function'&&canLive()))return base;
+ try{const W=(typeof world==='function'&&world().label)||'中世紀奇幻';const here=LOCS[S.loc]?LOCS[S.loc].name:'';
+  const sys=`你是角色設定助手。根據故事片段，為角色「${name}」補齊設定，只輸出一個 JSON，不要解釋。\n世界觀：${W}；目前地點：${here}。\n格式：{"name":"${name}","gender":"女或男","role":"身分或職業（2到8字）","personality":"個性（20字內）","look":"外觀（40字內）","tone":"說話方式（20字內）","desc":"簡介（60字內，依故事內容）"}\n故事沒提到的部分，依世界觀合理補上，但不可和故事矛盾。`;
+  V372B3.calls=(V372B3.calls||0)+1;const out=await callModel([{role:'system',content:sys},{role:'user',content:'【故事片段】\n'+(ctx||'（故事裡沒有更多描寫）')}],{maxTokens:300,temperature:0.3});
+  const j=String(out||'').match(/\{[\s\S]*\}/);if(!j)return base;const o=JSON.parse(j[0]);
+  return{name,pr:/男/.test(o.gender||'')?'他':/女/.test(o.gender||'')?'她':base.pr,role:String(o.role||base.role).slice(0,16),look:String(o.look||base.look).slice(0,120),tone:String(o.tone||'').slice(0,80),desc:String((o.desc||base.desc)+(o.personality?'個性：'+o.personality:'')).slice(0,120),pers:String(o.personality||'').slice(0,40)}}
+ catch(e){console.warn('fillChar372b',e);return base}}
+/* ---------- 路人查名字 ---------- */
+function pbAll372b(){const out=[];try{for(const v of Object.values(S.pb||{}))for(const p of v.list||[])out.push(p)}catch(e){}
+ for(const p of (S.guild&&S.guild.staff)||[])out.push(p);for(const p of S.pbRoad||[])out.push(p);for(const p of S.pbStory372||[])out.push(p);return out}
+function pbByName372b(name){if(!S||!name)return null;const k=b3Norm(name);const long=S.pbLong||{};
+ const L=[].concat(typeof pbHere==='function'?pbHere():[],pbAll372b()).filter(p=>p&&!long[p.id]&&!(S.pbGone||[]).includes(p.id));
+ return L.find(p=>b3Norm(p.name)===k)||L.find(p=>k.length>=2&&b3Norm(p.name).split(/[・·‧]/).some(x=>x===k))||null}
+/* ---------- 真的建立 ---------- */
+function b3Say(text,priv){if(priv&&typeof PR35!=='undefined'&&PR35){PR35.hist.push({role:'oocr',text,ooc:true});try{renderPriv35(true)}catch(e){}}else pushMsg({role:'oocr',text})}
+async function oocCreate372b(name,r,opt){const priv=!!(opt&&opt.priv);const loc=priv&&PR35&&PR35.loc&&LOCS[PR35.loc]?PR35.loc:S.loc;const ctx=storyCtx372b(name);
+ let id=null,info=null,via='';const pb=pbByName372b(name);
+ try{if(pb&&typeof pbPromote==='function'){via='pb';id=await pbPromote(pb.id);
+    if(id&&CHARS[id]&&ctx){try{const rec=KB.chars.find(x=>x.id===id);if(rec&&rec.card&&!String(rec.card.description||'').includes('故事中：')){rec.card.description=String(rec.card.description||'')+'\n故事中：'+ctx.split('\n').slice(-3).join(' ').slice(0,160);kbSave()}}catch(e){}}}
+  else{info=await fillChar372b(name,ctx);via='new';
+   const p={name,role:info.role||'鎮民',desc:info.desc||'',look:info.look||'',tone:info.tone||'',pr:info.pr||'她'};
+   id=await createGenerated(p,false);
+   if(id&&info.pers){try{const rec=KB.chars.find(x=>x.id===id);if(rec&&rec.card){rec.card.personality=info.pers;kbSave()}}catch(e){}}}}
+ catch(e){console.warn('oocCreate372b',e)}
+ if(!id||!CHARS[id]){r.fail.push(`想建立「${name}」，但建立失敗了（沒有建立任何角色）。可以再試一次，或到 📇 角色卡手動建立。`);r.offered=1;return null}
+ const x=S.chars[id];if(x){x.loc=loc;x.stay={loc,until:tsNow()+6}}
+ try{S.presHold=S.presHold||{};S.presHold[id]=(S.clock||0)+120}catch(e){}
+ if(priv&&PR35&&Array.isArray(PR35.who)&&!PR35.who.includes(id))PR35.who.push(id);
+ const role=(CHARS[id]&&CHARS[id].role)||(info&&info.role)||(pb&&pb.occ)||'';
+ r.done.push(`已建立角色：${name}${role?'（'+role+'）':''}，目前在${LOCS[loc]?LOCS[loc].name:'這裡'}${via==='pb'?'（由路人記為長期角色）':''}`);
+ V372B3.lastCreated=id;V372B3.log.push({name,id,via,t:Date.now()});
+ b3Say('【系統】✅ 已建立角色：'+name,priv);
+ try{renderAll();if(priv)renderPriv35()}catch(e){}try{autosave()}catch(e){}return id}
+/* ---------- 其他常用 OOC 指令 ---------- */
+const B3_NUM={一:1,兩:2,二:2,三:3,四:4,五:5,六:6,七:7,八:8,九:9,十:10};
+const B3_CL='(?:個|把|瓶|份|顆|件|塊|枚|張|支|袋|根|條|杯|片|套|本|罐|包)';
+function b3Qty(s){if(!s)return 1;return +s||B3_NUM[s]||1}
+function oocExtra372b(t,r){t=String(t||'').trim().replace(/^[【\[]+|[】\]]+$/g,'').replace(/[。！!]+$/,'').trim();
+ if((r.done&&r.done.length)||r._goPlace||(r.min||0))return r;r.fail=r.fail||[];
+ try{
+  // 給我物品（放進自己的背包）
+  let m=t.match(new RegExp('^(?:請|幫我)?\\s*(?:給我|背包(?:裡)?(?:加入|加上|增加|多)|(?:新增|增加|加入|加上)(?:物品|道具)\\s*[：:]?|我(?:獲得|得到|撿到)(?:了)?)\\s*(\\d+|[一兩二三四五六七八九十])?\\s*'+B3_CL+'?\\s*[「『]?([^」』，,。\\s]{1,16}?)[」』]?\\s*(?:到背包|進背包|放進背包)?$'));
+  if(m&&!b3CharByName(m[2])){const q=b3Qty(m[1]);gainItem(m[2],q,{silent:true});r.done.push(`背包加入「${m[2]}」${q>1?'×'+q:''}`);try{renderMemSide()}catch(e){}return r}
+  // 移除自己背包的物品
+  m=t.match(new RegExp('^(?:請|幫我)?\\s*(?:從背包(?:裡)?|把背包(?:裡)?的?)?\\s*(?:移除|刪除|丟掉|扣除|拿掉|丟棄|扔掉|用掉)\\s*(?:背包(?:裡)?的?)?\\s*(\\d+|[一兩二三四五六七八九十])?\\s*'+B3_CL+'?\\s*[「『]?([^」』，,。\\s]{1,16}?)[」』]?$'))||
+   (()=>{const k=t.match(/^(?:請|幫我)?\s*(?:把|將)\s*[「『]?([^」』，,。\s]{1,16}?)[」』]?\s*從背包(?:裡)?(?:移除|刪除|拿掉|丟掉|扣除)$/);return k?[k[0],null,k[1]]:null})();
+  if(m&&!b3CharByName(m[2])){const nmI=m[2];const it=typeof findItem==='function'?findItem(nmI):null;const q=b3Qty(m[1]);
+   if(it&&loseItem(it.name,Math.min(q,it.qty),{silent:true})){r.done.push(`從背包移除「${it.name}」${q>1?'×'+q:''}`);try{renderMemSide()}catch(e){}}
+   else{r.fail.push(`背包裡沒有「${nmI}」，沒有移除任何東西。`);r.offered=1}return r}
+  // 職業／身分
+  m=t.match(/^(?:請|幫我)?\s*(?:把|將)?\s*(.{1,10}?)\s*的?\s*(?:職業|身分|身份|工作|頭銜)\s*(?:改成|改為|設為|設成|變成|換成|是)\s*[「『]?([^」』，,。；;]{1,12})[」』]?$/);
+  if(m){const c=b3CharByName(m[1]);if(c){const role=m[2].trim();CHARS[c].role=role;try{const rec=KB.chars.find(x=>x.id===c);if(rec&&rec.card){rec.card.ext=rec.card.ext||{};rec.card.ext.role=role;kbSave()}}catch(e){}
+    addCharFact37(c,`${nm(c)}是${role}`);r.done.push(`把${nm(c)}的職業改成「${role}」並寫進角色卡`);return r}
+   r.fail.push(`找不到叫「${m[1]}」的角色，沒有修改。`);r.offered=1;return r}
+  // 和玩家的關係
+  m=t.match(/^(?:請|幫我)?\s*(?:把|將)?\s*(.{1,10}?)\s*(?:和|與|跟)\s*(?:我|玩家|主角)\s*的?\s*關係\s*(?:改成|改為|設為|設成|變成|是)\s*[「『]?([^」』，,。；;]{1,12})[」』]?$/)||t.match(/^(?:請|幫我)?\s*(?:把|將)?\s*(.{1,10}?)\s*的\s*關係\s*(?:改成|改為|設為|設成|變成)\s*[「『]?([^」』，,。；;]{1,12})[」』]?$/);
+  if(m){const c=b3CharByName(m[1]);if(c){const rel=m[2].trim();S.chars[c].rel372=rel;addCharFact37(c,`${nm(c)}和你的關係是${rel}`);r.done.push(`把${nm(c)}和你的關係設為「${rel}」並寫進角色卡`);return r}
+   r.fail.push(`找不到叫「${m[1]}」的角色，沒有修改。`);r.offered=1;return r}
+ }catch(e){console.warn('oocExtra372b',e)}
+ return r}
+{const _oa=oocApply;oocApply=function(t){if(!S)return _oa.apply(this,arguments);let c=null;try{c=parseCreate372b(t)}catch(e){}
+  if(c&&c.name&&!c.strong){const ok=!!pbByName372b(c.name)||!!storyCtx372b(c.name);if(!ok)c=null}
+  if(!c)return oocExtra372b(t,_oa.apply(this,arguments));
+  const r={done:[],fail:[],min:0,pick:null,b3:1};
+  if(!c.name){r.fail.push('要建立哪一位？請告訴我名字，例如：「建立 布雅娜 角色」。');r.offered=1;return r}
+  const ex=b3CharByName(c.name);if(ex){r.fail.push(`「${nm(ex)}」已經是角色了，沒有重複建立。`);r.offered=1;return r}
+  const priv=typeof isPriv371==='function'&&isPriv371();
+  const job=oocCreate372b(c.name,r,{priv});try{if(typeof V37!=='undefined'&&Array.isArray(V37.oocPending))V37.oocPending.push(job)}catch(e){}V372B3.job=job;
+  return r}}
+/* 只有指令、沒有故事時，不要把「建立角色」或沒執行成功的指令拿去演故事（B2 會呼叫） */
+function oocNoPlay372b(t){try{if(parseCreate372b(t))return true;const a=(typeof V371!=='undefined'&&V371.lastActs)||[];
+ if(typeof looksLikeAction371==='function'&&looksLikeAction371(t)&&!a.length)return true;
+ if(/^(?:請|幫我)?\s*(?:給我|從背包|把背包)/.test(String(t).trim())||/(職業|身分|身份|關係)\s*(?:改成|改為|設為|設成|變成)/.test(t))return true}catch(e){}return false}
+/* 系統回覆：沒有實際執行的事，不可以說「已記錄在案」「已建立」 */
+const B3_CLAIM=/(已|已經|皆已|均已)[^。！!？?\n]{0,10}(記錄在案|記錄|登錄|建檔|存檔|寫進|寫入|設定好|安排好|建立|新增|創建|加入|生成)|記錄在案|資料已(?:記錄|建立|登錄)/;
+{const _pm=pushMsg;pushMsg=function(m){try{if(m&&m.role==='oocr'&&typeof m.text==='string'&&!/^【系統】✅/.test(m.text)){const acts=(typeof V371!=='undefined'&&V371.lastActs)||[];
+   if(!acts.length){const lines=m.text.split('\n');const fixed=lines.map(line=>{if(/系統這次沒有執行|沒有執行任何動作|✅ 系統實際執行/.test(line))return line;const parts=line.split(/(?<=[。！!？?])/);return parts.filter(x=>!B3_CLAIM.test(x)||/沒有|沒|未|不會|無法/.test(x)).join('')}).filter(x=>x.trim()&&x.trim()!=='【系統】');
+    let tx=fixed.join('\n');if(!tx.startsWith('【系統】')&&/^【系統】/.test(m.text))tx='【系統】'+tx.replace(/^【系統】/,'');if(tx.replace('【系統】','').trim())m.text=tx}}}catch(e){}
+  return _pm.apply(this,arguments)}}
+/* 說明文字加上新指令 */
+if(typeof hintPhrases371==='function'){const _hp=hintPhrases371;hintPhrases371=function(){return _hp.apply(this,arguments)+' 另外也可以：「建立 布雅娜 角色」「把某某設為角色」「給我 2 瓶治療藥水」「從背包移除 麵包」「莉娜好感度設為 50」「莉娜的職業改成鐵匠」「莉娜和我的關係改成戀人」。'}}
+
+/* ---------- B4：故事裡開口的陌生人 → 這個地點的路人 ---------- */
+const B4_GENERIC=/^(旁白|系統|眾人|大家|所有人|某人|聲音|人群|路人|陌生人|不明人物|？+|\?+|narrator|system)$/i;
+function spkClean372b(n){let s=String(n||'').replace(/<[^>]*>/g,'').trim();let occ='';
+ s=s.replace(/^[\d０-９\s#＃.．\-_:：、,，*＊|｜]+/,'').replace(/[\s:：|｜]+$/,'');
+ const m=s.match(/^(.+?)\s*[（(]([^）)]{1,12})[）)]$/);if(m){s=m[1].trim();occ=m[2].trim()}
+ const m2=s.match(/^([^\s・·‧]{1,8})[\s・·‧]+([\u4e00-\u9fff]{2,6})$/);if(m2&&B3_OCC_RE.test(m2[2])){occ=occ||m2[2]}
+ return{name:s.slice(0,12),occ}}
+function pbStoryAdd372b(name,o={}){if(!S||!name)return null;if(B4_GENERIC.test(name)||B3_BAD_NAME.test(name))return null;if(typeof isPlayerName==='function'&&isPlayerName(name))return null;if(b3CharByName(name))return null;
+ const loc=o.loc||S.loc;S.pbStory372=S.pbStory372||[];const k=b3Norm(name);
+ const exist=[].concat(typeof pbHere==='function'?pbHereRaw372b(loc):[],pbAll372b()).find(p=>p&&b3Norm(p.name)===k);
+ const raw=String(o.raw||'');const ctx=raw.replace(/<speaker\b[^>]*name="([^"]*)"[^>]*>/g,'$1：').replace(/<[^>]+>/g,'');
+ if(exist){if(exist.src==='story'){exist.loc=loc;exist.seen=tsNow();if(!exist.desc&&ctx)exist.desc=b4Desc(name,ctx)}return exist}
+ const occ=o.occ||guessOcc372b(name,ctx,o.tone)||'路人';
+ const p={id:'pbs_'+hstr(name+':'+(S.seed||'')).toString(36),name,occ,look:guessLook372b(name,ctx)||(o.tone?`說話${o.tone}`:'故事中登場的人物'),pers:o.tone?`說話${o.tone}`:'依故事中的言行',pr:guessPr372b(name,ctx+(occ||'')),loc,src:'story',born:tsNow(),seen:tsNow(),desc:b4Desc(name,ctx),keep:true};
+ S.pbStory372.push(p);S.pbStory372=S.pbStory372.slice(-40);try{autosave()}catch(e){}return p}
+function b4Desc(name,ctx){const lines=String(ctx||'').split(/\n+/).map(x=>x.trim()).filter(x=>x.includes(name));return lines.length?('故事中：'+lines.slice(0,2).join(' ')).slice(0,140):''}
+function pbHereRaw372b(k){try{return V372B3._ph?V372B3._ph(k):[]}catch(e){return[]}}
+if(typeof pbHere==='function'){const _ph=pbHere;V372B3._ph=_ph;pbHere=function(k){const L0=_ph.apply(this,arguments);try{const loc=k||S.loc;const long=S.pbLong||{};const gone=S.pbGone||[];
+  const have=new Set(L0.map(p=>b3Norm(p.name)));const ks=new Set(Object.keys(CHARS).filter(c=>S.chars[c]).map(c=>b3Norm(nm(c))));
+  const add=(S.pbStory372||[]).filter(p=>p.loc===loc&&!long[p.id]&&!gone.includes(p.id)&&!have.has(b3Norm(p.name))&&!ks.has(b3Norm(p.name))&&(tsNow()-(p.seen||p.born||0))<=15);
+  return L0.concat(add)}catch(e){return L0}}}
+if(typeof pbFind==='function'){const _pf=pbFind;pbFind=function(id){const p=_pf.apply(this,arguments);if(p)return p;try{return(S.pbStory372||[]).find(x=>x.id===id)||null}catch(e){return null}}}
+{const _ao=applyOp;applyOp=function(op,msg){let reg=null;
+  try{if(op&&op.t==='speaker'&&op.a&&op.a.name&&S){const a=op.a;const cl=spkClean372b(a.name);
+    if(cl.name&&cl.name!==a.name&&!(typeof resolveChar==='function'&&resolveChar(a.name))){a._raw372b=a.name;a.name=cl.name}
+    reg=cl}}catch(e){}
+  const res=_ao.apply(this,arguments);
+  try{if(reg&&op.a&&op.a.name&&!op.a._was&&!(typeof resolveChar==='function'&&resolveChar(op.a.name))){
+    const p=pbStoryAdd372b(op.a.name,{occ:reg.occ,tone:op.a.tone||'',raw:(msg&&msg.raw)||(typeof LAST_RAW!=='undefined'?LAST_RAW:'')});if(p)op.a._pb372b=p.id}}catch(e){console.warn('b4 speaker',e)}
+  return res}}
+// 陌生人說話時，頭像圈不要空白：先放名字第一個字
+{const _se=segEl;segEl=function(seg){const d=_se.apply(this,arguments);try{if(seg&&!seg.who&&seg.name){const av=d.querySelector('.av');if(av&&!av.textContent){av.textContent=String(seg.name).trim().charAt(0);av.classList.add('b4init');av.title=seg.name+'（路人）'}}}catch(e){}return d}}
+try{const st=document.createElement('style');st.textContent='.av.b4init{display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;background:#6b5a8e!important;font-size:15px}';document.head.appendChild(st)}catch(e){}
 
 /* v3.3：手機版——側欄改成抽屜；點遮罩或選了項目就收起 */
 (function(){const tb=$('#topbar');if(!tb)return;
