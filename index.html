@@ -10049,6 +10049,103 @@ if(typeof pbFind==='function'){const _pf=pbFind;pbFind=function(id){const p=_pf.
 {const _se=segEl;segEl=function(seg){const d=_se.apply(this,arguments);try{if(seg&&!seg.who&&seg.name){const av=d.querySelector('.av');if(av&&!av.textContent){av.textContent=String(seg.name).trim().charAt(0);av.classList.add('b4init');av.title=seg.name+'（路人）'}}}catch(e){}return d}}
 try{const st=document.createElement('style');st.textContent='.av.b4init{display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;background:#6b5a8e!important;font-size:15px}';document.head.appendChild(st)}catch(e){}
 
+/* =====================================================================
+   v3.7.2 D5（Neil 2026-11-16）：「去廣場看告示牌」被當成一個叫「廣場看告示牌」的地點
+   - 「去X看Y／去X買Y／到X做Y」拆成 地點X ＋ 要做的事Y
+   - X 先比對本鎮現有地點（含「的」、街上、告示牌／佈告欄→公會）
+   - 玩家點的選項或自己打的「去X」，本鎮（城市／王都／村鎮）若還沒有這個地方，
+     就在本鎮新增一個子地點（存進存檔），走過去後接著演 Y；不再回「沒有這個地方」
+   - 跨鎮仍走原本的出發確認；地城、野外、私下空間不動
+   ===================================================================== */
+const V372B4={player:0,log:[]};
+const B4_ACT=/(看一看|看看|瞧瞧|看|買|逛逛|逛|找|問問|問|打聽|吃|喝|坐坐|坐|休息|查看|接|交|賣|參觀|散步|走走|等|領|觀看|聽|讀|閱讀)/;
+const B4_ACT_SPLIT=new RegExp('^(.{2,10}?)'+B4_ACT.source+'(.*)$');
+const B4_BOARD=/告示牌|告示板|告示|佈告欄|布告欄|佈告|布告|公告欄|公告|公佈欄|公布欄|委託板|任務板|懸賞榜|懸賞/;
+const B4_PLACE_TAIL=/(廣場|市場|市集|街|巷|門|橋|塔|殿|宮|堂|館|鋪|店|坊|廠|場|園|院|所|樓|台|臺|港|碼頭|口|池|湖|泉|井|亭|屋|室|房|廳|府|寺|廟|祠|營|站|區|角|牌|欄|榜|板|攤|棧|會)$/;
+const B4_NOT_PLACE=/^(處|到處|找|問|看|買|跟|和|與|見|拜訪|告訴|幫|叫|請|拿|吃|喝|打|殺|救|追|偷|那裡|這裡|那邊|這邊|外面|外頭|別處|附近|四處|哪裡|哪)/;
+const B4_GO=/^(?:我們?|大家|一起|我們一起)?(?:前往|去|到|走去|走到|出發去|動身去|逛去)\s*(.{2,22}?)(?:吧|一趟)?[。！!～~]*$/;
+function b4Clean(s){return String(s||'').replace(/^[（(「『\s]+|[）)」』\s。！!～~]+$/g,'').replace(/^(那個|這個|附近的|鎮上的|城裡的|本地的)/,'').replace(/(一下|一趟|那邊|那裡|這邊|這裡)$/,'').trim()}
+function splitGo372b4(q){q=b4Clean(b4Clean(q).replace(/^(?:我們?|大家)?(?:一起)?(?:前往|去|到|走去|走到|出發去|動身去)/,''));if(!q)return{place:'',act:''};
+ let place=q,act='';const m=q.match(B4_ACT_SPLIT);
+ if(m&&!B4_NOT_PLACE.test(m[1])){place=m[1];act=(m[2]+(m[3]||'')).trim()}
+ if(place.includes('的')){const i=place.indexOf('的');const a=place.slice(0,i),b=place.slice(i+1);if(a.length>=2&&b){place=a;act=act||((B4_BOARD.test(b)?'看':'看看')+b)}}
+ place=b4Clean(place);return{place,act,q}}
+function b4TownOK(loc){const l=LOCS[loc];if(!l||l.dungeon||l.wild)return false;if(typeof isPriv371==='function'&&isPriv371())return false;
+ const ar=areaKey372(loc);if(!ar||ar==='home')return false;const bk=typeof areaLoc==='function'?areaLoc(ar):null;const base=bk&&LOCS[bk];if(!base||base.dungeon)return false;
+ return!/^(ruin|bandit|wild|dungeon)$/.test(String(base.role||''))}
+function b4Placey(p){p=String(p||'');if(p.length<2||p.length>8||B4_NOT_PLACE.test(p))return false;if(/[，,、？?！!「」]/.test(p))return false;
+ try{if(typeof resolveChar==='function'&&resolveChar(p))return false}catch(e){}try{if(typeof isPlayerName==='function'&&isPlayerName(p))return false}catch(e){}
+ try{if(typeof hardHits==='function'&&hardHits(p).length)return false}catch(e){}
+ return B4_PLACE_TAIL.test(p)||B4_BOARD.test(p)||!!(typeof kindOf372==='function'&&kindOf372(p))}
+function b4InTown(name,loc){const ar=areaKey372(loc);if(!ar)return null;const ids=locsInTown372(ar);name=String(name||'');
+ return ids.find(k=>LOCS[k].name===name)||ids.find(k=>LOCS[k].name&&name.length>=2&&(LOCS[k].name.includes(name)||name.includes(LOCS[k].name)))||null}
+function b4Loc(k){return{kind:'loc',id:k,loc:k,name:LOCS[k].name,label:LOCS[k].name}}
+function b4Create(name,loc){if(!b4TownOK(loc)||!b4Placey(name))return null;const ar=areaKey372(loc);const bk=areaLoc(ar);const base=LOCS[bk];
+ const have=b4InTown(name,loc);if(have)return have;const A0=typeof s34==='function'?s34():null;if(!A0)return null;
+ if(A0.custom.filter(c=>c&&c.level==='room'&&c.area===ar).length>=16)return null;
+ const k='cr_'+hstr(ar+name).toString(36);const desc=`${base.name}的${name}。`+(B4_BOARD.test(name)?'牆上釘滿了告示、懸賞單和尋人啟事。':'');
+ LOCS[k]={name:String(name).slice(0,12),icon:B4_BOARD.test(name)?'📜':'🚪',x:-10,y:-10,far:true,wm:base.wm,area:ar,room:k,sub:true,role:base.role,indoor:/館|鋪|廳|會|堂|屋|所|室|店|房|樓/.test(name),img:base.img,desc:[desc],mood:base.mood,visited:true,b4:true};
+ try{LOC_AFF[k]=(LOC_AFF[bk]||[]).slice();LOC_CHOICES[k]={d:['四處看看','向這裡的人打聽消息',`回到${base.name}街上`],n:['向這裡的人打聽消息',`回到${base.name}街上`]}}catch(e){}
+ if(!A0.custom.some(c=>c&&c.key===k))A0.custom.push({level:'room',key:k,name:LOCS[k].name,area:ar,desc});
+ V372B4.log.push({t:Date.now(),k,name,area:ar});try{if(typeof feed==='function')feed(`${base.name}多了一個地方：${name}`,'📍')}catch(e){}
+ return k}
+function b4Missing(r){return!r||r.kind==='missing'}
+// 把 X（地點部分）解析到本鎮；create=玩家主動才允許新增
+function resolveGo372b4(text,opt={}){const loc=opt.loc||S.loc;const sp=splitGo372b4(text);const orig=V372B4._rd;
+ const tryQ=q=>{if(!q)return null;try{const r=orig(q,{loc});return r}catch(e){return null}};
+ let whole=tryQ(sp.q);if(whole&&!b4Missing(whole)&&(!sp.act||whole.crosstown))return{pl:whole,sp};
+ let pl=sp.place&&sp.place!==sp.q?tryQ(sp.place):whole;
+ if(pl&&pl.crosstown)return{pl,sp};
+ if(pl&&!b4Missing(pl))return{pl,sp};
+ // 街上／大街 → 本鎮主街
+ if(/^(街上|大街|街道|主街|鎮上|城裡)$/.test(sp.place)){const ar=areaKey372(loc);const bk=ar&&areaLoc(ar);if(bk&&LOCS[bk])return{pl:b4Loc(bk),sp}}
+ // 本鎮同名（模糊）
+ const near=b4InTown(sp.place,loc);if(near)return{pl:b4Loc(near),sp};
+ // 告示牌／佈告欄 → 本鎮公會（有的話）
+ if(B4_BOARD.test(sp.place)){const ar=areaKey372(loc);const g=locsInTown372(ar).find(k=>LOCS[k].guild||/公會|會館/.test(LOCS[k].name));if(g)return{pl:b4Loc(g),sp}}
+ // 旅店／酒館的房間選擇保持原樣（讓玩家挑房間）
+ const miss=pl||whole;if(miss&&miss.kind==='missing'&&(miss.offers||[]).some(o=>o&&(o.kind==='priv'&&/旅店|通鋪|酒館|客房|包廂/.test(sp.place)||(o.name&&(o.name.includes(sp.place)||sp.place.includes(o.name))))))return{pl:miss,sp};
+ if(opt.create&&!(typeof HOME_NAMES372==='object'&&HOME_NAMES372[sp.place])){const k=b4Create(sp.place,loc);if(k)return{pl:Object.assign(b4Loc(k),{created:true}),sp}}
+ return{pl:miss,sp,none:true}}
+// 核心解析也看得懂「X看Y」（AI 敘事、標籤、舊路徑都走這裡）
+{const _rd=resolveDest372;V372B4._rd=_rd;resolveDest372=function(q,opt={}){const r=_rd.apply(this,arguments);
+  try{if(S&&b4Missing(r)&&q){const loc=opt.loc||S.loc;if(LOCS[loc]&&!LOCS[loc].dungeon){const g=resolveGo372b4(q,{loc,create:!!V372B4.player});if(g.pl&&!b4Missing(g.pl))return g.pl}}}catch(e){console.warn('resolveDest372b4',e)}
+  return r}}
+async function goAct372b4(t,opt={}){const sp0=splitGo372b4(t);const loc=S.loc;
+ V372B4.player=1;let g;try{g=resolveGo372b4(t,{loc,create:true})}finally{V372B4.player=0}
+ const pl=g.pl,sp=g.sp;
+ if(opt.echo)pushMsg({role:'user',text:opt.echo});
+ if(pl&&!b4Missing(pl)){
+  if(pl.crosstown){await goPlace371(pl,{});return{ok:true,cross:true}}
+  V372B4.player=1;let r;try{r=await goPlace371(pl,{})}finally{V372B4.player=0}
+  if(r&&r.ok===false&&r.why==='confirm')return{ok:true,cross:true};
+  V372B4.last={t,place:pl.name,created:!!pl.created,act:sp.act,loc:S.loc};
+  if(sp.act){if(B4_BOARD.test(sp.act+sp.place)&&LOCS[S.loc]&&LOCS[S.loc].guild&&typeof openGuild==='function'){try{pushMsg({role:'user',text:`（${sp.act}）`});openGuild()}catch(e){}return{ok:true}}
+   await handleUser(`（${sp.act}）`)}
+  return{ok:true}}
+ if(pl&&pl.kind==='missing'&&(pl.offers||[]).length&&!g.none){showPlaceOffers371(pl);return{ok:false,offers:true}}
+ // 真的放不進地圖（野外、灰石鎮、不像地名…）：留在原地，故事照演，不說「沒有這個地方」
+ V372B4.last={t,place:null,act:sp.act,loc:S.loc,stay:true};
+ await handleUser(`（${b4Clean(t)}）`);return{ok:true,stay:true}}
+function b4Want(t){if(!S||BUSY||!LOCS[S.loc]||LOCS[S.loc].dungeon)return null;if(typeof isPriv371==='function'&&isPriv371())return null;
+ t=b4Clean(t);if(t.length>24||/[，,、]/.test(t))return null;const m=t.match(B4_GO);if(!m)return null;
+ const sp=splitGo372b4(t);if(!sp.place||sp.place.length<2||B4_NOT_PLACE.test(sp.place))return null;
+ // 原解析已經可以直接到、又沒有要做的事 → 交給原本流程
+ let whole=null;try{whole=V372B4._rd(sp.q,{loc:S.loc})}catch(e){}
+ if(!sp.act&&whole&&!b4Missing(whole))return null;
+ // 灰石鎮專屬全名（酒館大廳、市集廣場…）在外鎮：維持原本「列出本鎮最接近的地方」
+ if(!sp.act&&typeof HOME_NAMES372==='object'&&HOME_NAMES372[sp.place])return null;
+ let pr=null;try{pr=sp.place!==sp.q?V372B4._rd(sp.place,{loc:S.loc}):whole}catch(e){}
+ if(!b4Placey(sp.place)&&b4Missing(pr))return null;
+ return t}
+{const _oc=onChoice;onChoice=function(c){try{const t=b4Want(c);if(t){goAct372b4(t,{echo:`（${t}）`});return}}catch(e){console.warn('onChoice372b4',e)}return _oc.apply(this,arguments)}}
+{const _hu=handleUser;handleUser=async function(text,opt={}){try{const raw=String(text||'').trim();if(!(opt&&(opt.to||opt.topic||opt.mode))&&!/^[【\[（(]/.test(raw)&&(typeof INMODE==='undefined'||INMODE!=='ooc')){const t=b4Want(raw);if(t)return await goAct372b4(t,{echo:raw})}}catch(e){console.warn('handleUser372b4',e)}
+  return _hu.apply(this,arguments)}}
+// D5b：AI 回覆尾端的 <choices>（例如「前往酒館大廳」）只是選項，不是已經移動；
+// 舊的語意後援會掃到它，把人自動帶走或跳出「沒有這個地方」。掃描前先把選項區拿掉。
+function stripChoices372b4(t){return String(t||'').replace(/<choices>[\s\S]*?(?:<\/choices>|$)/ig,' ').replace(/\[choices\][\s\S]*?(?:\[\/choices\]|$)/ig,' ')}
+{const _im=inferMoveFromText371;inferMoveFromText371=function(text){return _im.call(this,stripChoices372b4(text))}}
+
 /* v3.3：手機版——側欄改成抽屜；點遮罩或選了項目就收起 */
 (function(){const tb=$('#topbar');if(!tb)return;
  tb.insertAdjacentHTML('afterbegin','<button class="mobbtn" id="mobNav" title="選單" aria-label="選單">☰</button>');
